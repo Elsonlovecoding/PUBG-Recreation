@@ -365,12 +365,12 @@ function animate(){
   const t = clock.elapsedTime;
 
   if(!matchStarted){
-    // lobby: camera parked in front of your character, village behind
-    const camX = LOBBY_SPOT.x + 1.2, camZ = LOBBY_SPOT.z - 4.6;
+    // lobby hero shot: character large, right of center, village behind
+    const camX = LOBBY_SPOT.x + 0.7, camZ = LOBBY_SPOT.z - 3.4;
     const gy = groundAt(LOBBY_SPOT.x, LOBBY_SPOT.z);
-    rig.position.set(camX, gy + 1.45 + Math.sin(t*0.5)*0.04, camZ);
-    player.yaw = Math.atan2(camX - LOBBY_SPOT.x, camZ - LOBBY_SPOT.z);
-    player.pitch = -0.03;
+    rig.position.set(camX, gy + 1.35 + Math.sin(t*0.5)*0.03, camZ);
+    player.yaw = Math.atan2(camX - LOBBY_SPOT.x, camZ - LOBBY_SPOT.z) + 0.17;
+    player.pitch = -0.02;
     rig.rotation.y = player.yaw; pitchPivot.rotation.x = player.pitch;
     camera.position.set(0,0,0);
     gunRoot.visible = false;

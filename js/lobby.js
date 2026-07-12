@@ -55,18 +55,20 @@ function cycleSlot(i, dir){
   refreshSlotsPanel();
 }
 
-// ---------------- panel wiring ----------------
+// ---------------- tabs + panels ----------------
 const avatarPanel = document.getElementById('avatarpanel');
 const settingsPanel = document.getElementById('settingspanel');
-function togglePanel(panel){
-  const show = panel.style.display !== 'block';
-  avatarPanel.style.display = 'none';
-  settingsPanel.style.display = 'none';
-  panel.style.display = show ? 'block' : 'none';
+const TABS = { play: null, custom: avatarPanel, settings: settingsPanel };
+function setTab(name){
+  for(const t of ['play','custom','settings']){
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
+    if(TABS[t]) TABS[t].style.display = (t === name) ? 'block' : 'none';
+  }
   SFX.ready && SFX.click();
 }
-document.getElementById('avatarbtn').addEventListener('click', () => togglePanel(avatarPanel));
-document.getElementById('settingsbtn').addEventListener('click', () => togglePanel(settingsPanel));
+document.getElementById('tab-play').addEventListener('click', () => setTab('play'));
+document.getElementById('tab-custom').addEventListener('click', () => setTab('custom'));
+document.getElementById('tab-settings').addEventListener('click', () => setTab('settings'));
 avatarPanel.querySelectorAll('.arrow').forEach(btn => {
   btn.addEventListener('click', () => {
     const row = btn.closest('.cfgrow');
@@ -82,40 +84,66 @@ settingsPanel.querySelectorAll('.arrow').forEach(btn => {
   });
 });
 
-// ---------------- play queue ----------------
-const queueEl = document.getElementById('queuescreen');
+// ---------------- player name ----------------
+const NAME_KEY = 'pubgrec_name';
+const nameEl = document.getElementById('playername');
+const plateEl = document.getElementById('nameplate');
+function loadName(){
+  let n = 'PLAYER';
+  try { n = localStorage.getItem(NAME_KEY) || 'PLAYER'; } catch(e){}
+  nameEl.textContent = n; plateEl.textContent = n;
+}
+nameEl.addEventListener('blur', () => {
+  const n = (nameEl.textContent || 'PLAYER').trim().slice(0, 14).toUpperCase() || 'PLAYER';
+  nameEl.textContent = n; plateEl.textContent = n;
+  try { localStorage.setItem(NAME_KEY, n); } catch(e){}
+});
+nameEl.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); nameEl.blur(); } });
+loadName();
+{
+  const c = loadJSON('pubgrec_stats', {});
+  document.getElementById('playerlv').textContent = 'LV ' + (1 + (c.matches || 0));
+}
+
+// ---------------- matchmaking banner ----------------
+const queueBanner = document.getElementById('queuebanner');
 const queueCount = document.getElementById('queuecount');
-const queueFill = document.getElementById('queuefill');
 const queueTitle = document.getElementById('queuetitle');
+const startBtn = document.getElementById('playbtn');
 let queueTimer = null;
 function openQueue(){
-  document.getElementById('startscreen').style.display = 'none';
-  queueEl.style.display = 'flex';
-  queueTitle.textContent = 'SEARCHING FOR PLAYERS';
+  if(queueTimer || matchStarted) return;
+  setTab('play');
+  queueBanner.style.display = 'flex';
+  queueTitle.textContent = 'MATCHMAKING';
+  startBtn.classList.add('queueing');
+  startBtn.textContent = 'IN QUEUE…';
   let n = 1;
+  queueCount.textContent = '1 / 40';
   SFX.unlock();
   queueTimer = setInterval(() => {
     n = Math.min(40, n + 2 + Math.floor(Math.random()*6));
     queueCount.textContent = n + ' / 40';
-    queueFill.style.width = (n/40*100) + '%';
     if(n >= 40){
       clearInterval(queueTimer); queueTimer = null;
       queueTitle.textContent = 'MATCH FOUND';
+      queueCount.textContent = 'DEPLOYING…';
       SFX.kill();
       setTimeout(() => {
-        queueEl.style.display = 'none';
+        queueBanner.style.display = 'none';
         startMatch();
         document.getElementById('lockhint').style.display = 'block';
-      }, 700);
+      }, 800);
     }
   }, 240);
 }
 function cancelQueue(){
   if(queueTimer){ clearInterval(queueTimer); queueTimer = null; }
-  queueEl.style.display = 'none';
-  document.getElementById('startscreen').style.display = 'flex';
+  queueBanner.style.display = 'none';
+  startBtn.classList.remove('queueing');
+  startBtn.textContent = 'START';
 }
-document.getElementById('playbtn').addEventListener('click', openQueue);
+startBtn.addEventListener('click', openQueue);
 document.getElementById('cancelqueue').addEventListener('click', cancelQueue);
 // grab the mouse on the first click after deploying (browsers demand a gesture)
 document.addEventListener('click', () => {
@@ -132,7 +160,7 @@ document.getElementById('againbtn').addEventListener('click', () => {
 try {
   if(sessionStorage.getItem('pubgrec_autoqueue')){
     sessionStorage.removeItem('pubgrec_autoqueue');
-    setTimeout(openQueue, 400);
+    setTimeout(openQueue, 500);
   }
 } catch(e){}
 

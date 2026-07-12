@@ -50,7 +50,7 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 
 ## Features
 
-- Lobby with a live 3D character preview: customize shirt, pants, skin and headgear (saved in the browser), set which gun sits in slot 1/2/3, then PLAY queues a 40-player match; end and pause screens return you to the lobby
+- PUBG-style lobby: top tab bar (PLAY / CUSTOMIZE / SETTINGS), your character posed on a staging pad with an editable nameplate, career chip and big gold START; customization (shirt/pants/skin/headgear) and weapon-slot order persist in the browser, and matchmaking runs as a banner over the lobby before deploying
 
 - Procedural 1.4 km × 1.4 km island with domain-warped ridgelines, crisp dirt roads, sand beaches and a lake; ~50 buildings across eight settlement sites
 - Building variety: houses, two-storey houses, walk-up apartments with real second floors and outside staircases (bonus loot upstairs), barns, sheds, flat-roof warehouses with roll doors, farm silos and hilltop watchtowers, in six paint palettes

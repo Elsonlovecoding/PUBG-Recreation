@@ -72,6 +72,21 @@ const avatar = (function(){
            headgear: { hair:[hgHair], cap:[hgCap, hgCapBrim], helmet1:[hgH1], helmet3:[hgH3] } };
 })();
 const LOBBY_SPOT = { x: -2, z: -40 };
+const lobbyPad = (function(){
+  const g = new THREE.Group();
+  const y = groundAt(LOBBY_SPOT.x, LOBBY_SPOT.z);
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.6, 0.14, 24),
+    new THREE.MeshStandardMaterial({ color:0x8d8a84, flatShading:true, roughness:1 }));
+  disc.position.set(LOBBY_SPOT.x, y + 0.07, LOBBY_SPOT.z);
+  disc.receiveShadow = true;
+  g.add(disc);
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(2.62, 2.62, 0.06, 24, 1, true),
+    new THREE.MeshStandardMaterial({ color:0xf2a900, flatShading:true, roughness:0.8 }));
+  ring.position.set(LOBBY_SPOT.x, y + 0.12, LOBBY_SPOT.z);
+  g.add(ring);
+  scene.add(g);
+  return g;
+})();
 function applyOutfit(shirtHex, pantsHex, skinHex, headKey){
   avatar.shirtM.color.setHex(shirtHex);
   avatar.pantsM.color.setHex(pantsHex);
@@ -90,11 +105,13 @@ function effectiveThird(){ return thirdPerson && !scopeShown; }
 function updateAvatar(dt){
   const a = avatar;
   if(!matchStarted){
-    // lobby: stand on the road, turn slowly, hold slot-1 weapon
+    // lobby: on the staging pad, facing the camera, slot-1 weapon in hand
     const t = performance.now()*0.001;
+    lobbyPad.visible = true;
     a.group.visible = true;
-    a.group.position.set(LOBBY_SPOT.x, groundAt(LOBBY_SPOT.x, LOBBY_SPOT.z), LOBBY_SPOT.z);
-    a.group.rotation.y = t*0.4;
+    a.group.position.set(LOBBY_SPOT.x, groundAt(LOBBY_SPOT.x, LOBBY_SPOT.z) + 0.14, LOBBY_SPOT.z);
+    a.group.rotation.y = Math.atan2(rig.position.x - LOBBY_SPOT.x, rig.position.z - LOBBY_SPOT.z)
+                         + Math.sin(t*0.4)*0.10;
     a.vest.visible = false;
     for(const w in a.guns) a.guns[w].visible = (w === slotConfig[0]);
     for(const it in a.items) a.items[it].visible = false;
@@ -103,6 +120,7 @@ function updateAvatar(dt){
     a.legL.rotation.set(0,0,0); a.legR.rotation.set(0,0,0);
     return;
   }
+  lobbyPad.visible = false;
   if(!player.alive || gameState.over){
     a.group.visible = false;
     return;

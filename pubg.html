@@ -70,46 +70,57 @@
 </div>
 
 <div id="startscreen" class="screen lobby">
-  <h1>PUBG <span>Recreation</span></h1>
-  <div class="sub">Low Poly Battle Royale</div>
-  <div class="rule"></div>
-  <div class="lobbybtns">
-    <button id="playbtn" class="btn">&#9654; PLAY</button>
-    <button id="avatarbtn" class="btn alt">AVATAR</button>
-    <button id="settingsbtn" class="btn alt">SETTINGS</button>
+  <div class="topbar">
+    <div class="logo">PUBG <span>RECREATION</span></div>
+    <div class="tabs">
+      <button class="tab active" id="tab-play">PLAY</button>
+      <button class="tab" id="tab-custom">CUSTOMIZE</button>
+      <button class="tab" id="tab-settings">SETTINGS</button>
+    </div>
+    <div class="playerchip"><span id="playername" contenteditable="true" spellcheck="false">PLAYER</span><small id="playerlv">LV 1</small></div>
   </div>
-  <div id="avatarpanel" class="lobbypanel">
-    <h3>YOUR CHARACTER</h3>
+
+  <div id="queuebanner">
+    <span class="qspin"></span>
+    <span id="queuetitle">MATCHMAKING</span>
+    <span id="queuecount">1 / 40</span>
+    <button id="cancelqueue">CANCEL</button>
+  </div>
+
+  <div id="nameplate">PLAYER</div>
+
+  <div id="avatarpanel" class="lobbypanel side">
+    <h3>CUSTOMIZE</h3>
     <div class="cfgrow" data-cfg="shirt"><span class="nm">SHIRT</span><button class="arrow prev">&#9664;</button><span class="swatch"></span><span class="val">#1</span><button class="arrow next">&#9654;</button></div>
     <div class="cfgrow" data-cfg="pants"><span class="nm">PANTS</span><button class="arrow prev">&#9664;</button><span class="swatch"></span><span class="val">#1</span><button class="arrow next">&#9654;</button></div>
     <div class="cfgrow" data-cfg="skin"><span class="nm">SKIN</span><button class="arrow prev">&#9664;</button><span class="swatch"></span><span class="val">#1</span><button class="arrow next">&#9654;</button></div>
     <div class="cfgrow" data-cfg="head"><span class="nm">HEADGEAR</span><button class="arrow prev">&#9664;</button><span class="val wide">HAIR</span><button class="arrow next">&#9654;</button></div>
     <div class="panelhint">changes show on your character &#8594;</div>
   </div>
-  <div id="settingspanel" class="lobbypanel">
+
+  <div id="settingspanel" class="lobbypanel side">
     <h3>WEAPON SLOTS</h3>
     <div class="cfgrow" data-slot="0"><span class="nm">SLOT 1</span><button class="arrow prev">&#9664;</button><span class="val wide">RIFLE</span><button class="arrow next">&#9654;</button></div>
     <div class="cfgrow" data-slot="1"><span class="nm">SLOT 2</span><button class="arrow prev">&#9664;</button><span class="val wide">SHOTGUN</span><button class="arrow next">&#9654;</button></div>
     <div class="cfgrow" data-slot="2"><span class="nm">SLOT 3</span><button class="arrow prev">&#9664;</button><span class="val wide">SNIPER</span><button class="arrow next">&#9654;</button></div>
-    <div class="panelhint">slot 1 is in your hands on landing &middot; keys 1 / 2 / 3 in game</div>
+    <div class="panelhint">slot 1 is in your hands on landing</div>
+    <h3 class="mt">CONTROLS</h3>
+    <div class="controls small">
+      <span><b>WASD</b> — Move</span><span><b>Mouse</b> — Look / Shoot</span>
+      <span><b>Right Click</b> — Aim / Scope</span><span><b>Shift</b> — Sprint</span>
+      <span><b>Space</b> — Jump</span><span><b>R</b> — Reload</span>
+      <span><b>1 / 2 / 3</b> — Weapons</span><span><b>E</b> — Inventory</span>
+      <span><b>F</b> — Jump / Vehicle</span><span><b>V</b> — 1st / 3rd person</span>
+    </div>
   </div>
-  <div class="controls">
-    <span><b>WASD</b> — Move</span><span><b>Mouse</b> — Look / Shoot</span>
-    <span><b>Right Click</b> — Aim (sniper scope)</span><span><b>Shift</b> — Sprint</span>
-    <span><b>Space</b> — Jump</span><span><b>R</b> — Reload</span>
-    <span><b>1 / 2 / 3</b> — Weapons</span><span><b>E</b> — Inventory (meds &amp; throwables)</span>
-    <span><b>F</b> — Jump from plane / Vehicle</span><span><b>V</b> — First / third person</span>
-    <span><b>Sniper</b> — Scoped: click to fire &middot; hip: hold &amp; release</span>
-  </div>
-  <div class="flavor">40 players &middot; parachute in &middot; last one standing wins</div>
-  <div class="flavor" id="careerline"></div>
-</div>
 
-<div id="queuescreen" class="screen">
-  <h1 id="queuetitle" class="qtitle">SEARCHING FOR PLAYERS</h1>
-  <div id="queuecount">1 / 40</div>
-  <div class="qbar"><div id="queuefill"></div></div>
-  <button id="cancelqueue" class="btn alt">CANCEL</button>
+  <div class="bottombar">
+    <div class="careerchip" id="careerline"></div>
+    <div class="startwrap">
+      <div class="modesel">SOLO &middot; 40 PLAYERS &middot; ISLAND 1.4KM</div>
+      <button id="playbtn" class="startbtn">START</button>
+    </div>
+  </div>
 </div>
 
 <div id="endscreen" class="screen">
