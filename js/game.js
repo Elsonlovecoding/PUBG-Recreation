@@ -2,12 +2,12 @@
 // PUBG Recreation — zone, minimap, HUD, career stats, match flow, main loop
 
 // ---------------- shrinking zone ----------------
-const zone = { cx:0, cz:0, r:480, tcx:0, tcz:0, tr:480, scx:0, scz:0, sr:480, phase:0, state:'wait', t:25 };
+const zone = { cx:0, cz:0, r:660, tcx:0, tcz:0, tr:660, scx:0, scz:0, sr:660, phase:0, state:'wait', t:25 };
 const ZONE_PHASES = [
-  { wait:30, shrink:28, mul:0.58 },
-  { wait:20, shrink:22, mul:0.56 },
-  { wait:16, shrink:17, mul:0.54 },
-  { wait:12, shrink:14, mul:0.50 },
+  { wait:32, shrink:30, mul:0.58 },
+  { wait:22, shrink:24, mul:0.56 },
+  { wait:17, shrink:18, mul:0.54 },
+  { wait:13, shrink:14, mul:0.50 },
   { wait:10, shrink:11, mul:0.45 },
   { wait:8,  shrink:9,  mul:0.05 },
 ];
@@ -32,8 +32,8 @@ const zoneWallMat = new THREE.ShaderMaterial({
   ].join('\n')
 });
 const zoneWall = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 96, 1, true), zoneWallMat);
-zoneWall.scale.set(zone.r, 340, zone.r);
-zoneWall.position.set(0, 160, 0);
+zoneWall.scale.set(zone.r, 360, zone.r);
+zoneWall.position.set(0, 170, 0);
 zoneWall.renderOrder = 5;
 scene.add(zoneWall);
 let zoneTick = 0;
@@ -45,8 +45,8 @@ function updateZone(dt){
       zone.scx = zone.cx; zone.scz = zone.cz; zone.sr = zone.r;
       const nr = Math.max(12, zone.r * P.mul);
       const a = randRange(0, Math.PI*2), off = randRange(0, (zone.r - nr) * 0.8);
-      zone.tcx = clamp(zone.cx + Math.cos(a)*off, -360, 360);
-      zone.tcz = clamp(zone.cz + Math.sin(a)*off, -360, 360);
+      zone.tcx = clamp(zone.cx + Math.cos(a)*off, -520, 520);
+      zone.tcz = clamp(zone.cz + Math.sin(a)*off, -520, 520);
       zone.tr = nr;
       zone.state = 'shrink'; zone.t = P.shrink;
       SFX.zoneSiren();
@@ -61,8 +61,8 @@ function updateZone(dt){
       zone.state = 'wait'; zone.t = ZONE_PHASES[Math.min(zone.phase, ZONE_PHASES.length-1)].wait;
     }
   }
-  zoneWall.scale.set(zone.r, 340, zone.r);
-  zoneWall.position.set(zone.cx, 160, zone.cz);
+  zoneWall.scale.set(zone.r, 360, zone.r);
+  zoneWall.position.set(zone.cx, 170, zone.cz);
   zoneWallMat.uniforms.time.value = performance.now()*0.001;
 
   // zone damage in half-second ticks
@@ -97,7 +97,7 @@ function updateZone(dt){
 const mapCanvas = document.getElementById('minimap');
 const mapCtx = mapCanvas.getContext('2d');
 const MAP_S = 190;
-const MBG = 176;
+const MBG = 200;
 const mapBg = document.createElement('canvas');
 mapBg.width = MBG; mapBg.height = MBG;
 {
@@ -278,7 +278,7 @@ function startMatch(){
 }
 window.__start = startMatch;   // dev hook: start match without pointer lock
 window.__dev = {               // dev/test hooks
-  bots, player, heightAt, solidCyls, crates, vehicles, zone,
+  bots, player, heightAt, solidCyls, crates, vehicles, zone, setThirdPerson,
   tp(x, z, yaw, pitch){ player.pos.set(x, groundAt(x,z), z); player.yaw = yaw||0; player.pitch = pitch||0; },
   skipDrop(x, z){
     for(const b of bots){
@@ -314,16 +314,19 @@ function endGame(win, killerName){
   const acc = matchStats.fired ? Math.round(matchStats.hit / matchStats.fired * 100) : 0;
   const mins = Math.max(0, clock.elapsedTime - matchStats.t0);
   const timeStr = Math.floor(mins/60) + ':' + ('0' + Math.floor(mins%60)).slice(-2);
-  const line = player.kills + ' kills · ' + Math.round(matchStats.damage) + ' damage · ' +
-               acc + '% accuracy · survived ' + timeStr;
+  document.getElementById('placebanner').innerHTML = '#' + place + ' <span>/ 40</span>';
+  document.getElementById('st-kills').textContent = player.kills;
+  document.getElementById('st-dmg').textContent = Math.round(matchStats.damage);
+  document.getElementById('st-acc').textContent = acc + '%';
+  document.getElementById('st-time').textContent = timeStr;
   if(win){
     end.className = 'screen win';
     title.textContent = 'WINNER WINNER CHICKEN DINNER!';
-    stats.innerHTML = '#1 of 40<br>' + line;
+    stats.innerHTML = '';
   } else {
     end.className = 'screen';
     title.textContent = 'YOU DIED';
-    stats.innerHTML = 'Placed #' + place + ' of 40 · eliminated by ' + killerName + '<br>' + line;
+    stats.innerHTML = 'eliminated by ' + killerName;
   }
   // career
   const c = loadCareer();
@@ -370,7 +373,8 @@ function animate(){
     const ox = Math.sin(a)*72, oz = 8 + Math.cos(a)*72;
     rig.position.set(ox, Math.max(heightAt(ox,oz), heightAt(0,8)) + 17, oz);
     player.yaw = a + Math.PI; player.pitch = -0.18;
-    rig.rotation.y = player.yaw; camera.rotation.x = player.pitch;
+    rig.rotation.y = player.yaw; pitchPivot.rotation.x = player.pitch;
+    camera.position.set(0,0,0);
     gunRoot.visible = false;
   } else if(dt > 0){
     if(dropActive) updateDrop(dt);
@@ -378,6 +382,10 @@ function animate(){
     for(const b of bots) if(!b.gone) updateBot(b, dt);
     updateVehicles(dt);
     updateThrowables(dt, t);
+    updateSmokes(dt, t);
+    updateAvatar(dt);
+    updateCameraRig(dt);
+    updateInteractPrompt();
     if(dropEnded) updateZone(dt);
     else document.getElementById('zonemsg').textContent = 'ZONE STARTS WHEN YOU LAND';
   }

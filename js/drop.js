@@ -2,7 +2,7 @@
 // PUBG Recreation — the plane drop: cargo plane, freefall, parachutes (bots too)
 
 let dropActive = false, dropEnded = false, planeT = 0, dropWasOver = false;
-const PLANE_Y = 240, PLANE_SPEED = 66;
+const PLANE_Y = 260, PLANE_SPEED = 72;
 const dropPath = { sx:0, sz:0, ex:0, ez:0, dur: 1 };
 
 const plane = (function(){
@@ -43,11 +43,11 @@ function startDrop(){
   dropActive = true; dropEnded = false; planeT = 0; dropWasOver = false;
   const a = randRange(0, Math.PI*2);
   const dx = Math.cos(a), dz = Math.sin(a);
-  const off = randRange(-140, 140);
+  const off = randRange(-200, 200);
   const cx = -dz*off, cz = dx*off;                     // perpendicular offset through the middle
-  dropPath.sx = cx - dx*800; dropPath.sz = cz - dz*800;
-  dropPath.ex = cx + dx*800; dropPath.ez = cz + dz*800;
-  dropPath.dur = 1600 / PLANE_SPEED;
+  dropPath.sx = cx - dx*1100; dropPath.sz = cz - dz*1100;
+  dropPath.ex = cx + dx*1100; dropPath.ez = cz + dz*1100;
+  dropPath.dur = 2200 / PLANE_SPEED;
   plane.visible = true;
   plane.rotation.y = Math.atan2(dx, dz);
   player.dropState = 'plane';
@@ -59,7 +59,7 @@ function startDrop(){
     b.active = false;
     b.group.visible = false;
     const px = b.landing.x - dropPath.sx, pz = b.landing.z - dropPath.sz;
-    const along = clamp((px*dx + pz*dz) / 1600, 0.1, 0.92);
+    const along = clamp((px*dx + pz*dz) / 2200, 0.08, 0.94);
     b.jumpAt = along * dropPath.dur + randRange(-0.8, 0.8);
     b.dropY = PLANE_Y + randRange(-2, 2);
     b.dropping = false;
@@ -69,7 +69,7 @@ function planePos(t){
   const f = clamp(t / dropPath.dur, 0, 1);
   return { x: lerp(dropPath.sx, dropPath.ex, f), z: lerp(dropPath.sz, dropPath.ez, f) };
 }
-function overIsland(pp){ return Math.max(Math.abs(pp.x), Math.abs(pp.z)) < 430; }
+function overIsland(pp){ return Math.max(Math.abs(pp.x), Math.abs(pp.z)) < 610; }
 function jumpFromPlane(){
   if(player.dropState !== 'plane') return;
   const pp = planePos(planeT);
@@ -77,6 +77,8 @@ function jumpFromPlane(){
   player.pos.set(pp.x, PLANE_Y - 4, pp.z);
   player.vel.set(0, 0, 0);
   player.dropState = 'free';
+  thirdPrefBeforeDrop = thirdPerson;
+  setThirdPerson(true);                        // PUBG-style: watch yourself dive
   document.getElementById('dropmsg').style.display = 'none';
   SFX.click();
 }
@@ -84,7 +86,7 @@ function finishPlayerLanding(){
   player.dropState = 'none';
   player.vel.set(0, 0, 0);
   playerChute.visible = false;
-  gunRoot.visible = true;
+  setThirdPerson(thirdPrefBeforeDrop);         // back to your preferred view
   dropEnded = true;                       // the zone clock starts now
   SFX.land(); SFX.setFall(0);
   dustPuff(player.pos.x, player.pos.y, player.pos.z);
@@ -107,16 +109,18 @@ function updateDrop(dt){
     player.pos.set(pp.x, PLANE_Y - 3, pp.z);
     rig.position.copy(player.pos);
     rig.rotation.y = player.yaw;
-    camera.rotation.x = player.pitch;
+    pitchPivot.rotation.x = player.pitch;
     const over = overIsland(pp);
     document.getElementById('dropmsg').innerHTML = over ? 'PRESS <b>F</b> TO JUMP' : 'APPROACHING THE ISLAND…';
     if(over) dropWasOver = true;
     if((dropWasOver && !over) || planeT >= dropPath.dur - 1){
       dropWasOver = true;                          // force the exit at the last chance
       const forced = planePos(Math.min(planeT, dropPath.dur - 1));
-      player.pos.set(clamp(forced.x, -420, 420), PLANE_Y - 4, clamp(forced.z, -420, 420));
+      player.pos.set(clamp(forced.x, -600, 600), PLANE_Y - 4, clamp(forced.z, -600, 600));
       player.vel.set(0, 0, 0);
       player.dropState = 'free';
+      thirdPrefBeforeDrop = thirdPerson;
+      setThirdPerson(true);
       document.getElementById('dropmsg').style.display = 'none';
     }
   } else if(player.dropState === 'free' || player.dropState === 'chute'){
@@ -143,7 +147,7 @@ function updateDrop(dt){
     player.pos.z = clamp(player.pos.z + player.vel.z*dt, -HALF+6, HALF-6);
     player.pos.y += player.vel.y*dt;
     SFX.setFall(Math.abs(player.vel.y) + Math.hypot(player.vel.x, player.vel.z)*0.3);
-    const g = groundAt(player.pos.x, player.pos.z);
+    const g = groundAt(player.pos.x, player.pos.z, player.pos.y);
     if(!chute && player.pos.y < g + 32){
       player.dropState = 'chute';
       playerChute.visible = true;
@@ -155,7 +159,7 @@ function updateDrop(dt){
     }
     rig.position.copy(player.pos);
     rig.rotation.y = player.yaw;
-    camera.rotation.x = player.pitch;
+    pitchPivot.rotation.x = player.pitch;
     camera.rotation.z = Math.sin(performance.now()*0.0016) * (chute ? 0.05 : 0.015);
     playerChute.rotation.z = Math.sin(performance.now()*0.0013) * 0.12;
   }

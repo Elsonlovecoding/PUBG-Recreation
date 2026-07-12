@@ -8,7 +8,24 @@ const VEHICLE_SPOTS = [
   { x: 228,  z: -212, hex: 0x6f8f5a },
   { x: 252,  z: 240,  hex: 0x8f7a4a },
   { x: -316, z: -298, hex: 0x7a5a8f },
+  { x: 120,  z: 462,  hex: 0x4a8f8a },
+  { x: -492, z: -90,  hex: 0x616a72 },
+  { x: 388,  z: -462, hex: 0xa06a3a },
 ];
+// park each buggy on the shoulder of the nearest road
+function snapToRoad(sp){
+  let best = null, bestR = null, bd = 1e9;
+  for(const r of roads){
+    const s = distToSeg(sp.x, sp.z, r);
+    if(s.d < bd){ bd = s.d; best = s; bestR = r; }
+  }
+  if(!best) return sp;
+  const dx = bestR.bx - bestR.ax, dz = bestR.bz - bestR.az;
+  const L = Math.hypot(dx, dz) || 1;
+  const px = -dz/L, pz = dx/L;
+  return { x: best.x + px*(bestR.hw + 2.4), z: best.z + pz*(bestR.hw + 2.4), hex: sp.hex,
+           yaw: Math.atan2(dx, dz) };
+}
 function makeBuggy(hex){
   const g = new THREE.Group();
   const paint = new THREE.MeshStandardMaterial({ color:hex, flatShading:true, roughness:0.7, metalness:0.1 });
@@ -36,11 +53,12 @@ function makeBuggy(hex){
   }
   return { g, wheels, mats };
 }
-for(const s of VEHICLE_SPOTS){
+for(const raw of VEHICLE_SPOTS){
+  const s = snapToRoad(raw);
   const { g, wheels, mats } = makeBuggy(s.hex);
   const y = groundAt(s.x, s.z);
   g.position.set(s.x, y, s.z);
-  g.rotation.y = randRange(0, Math.PI*2);
+  g.rotation.y = s.yaw !== undefined ? s.yaw : randRange(0, Math.PI*2);
   scene.add(g);
   const cyl = { x: s.x, z: s.z, r: 1.8, y0: y - 0.5, y1: y + 1.8, kind: 'vehicle', ref: null };
   const v = { group: g, wheels, mats, yaw: g.rotation.y, speed: 0, steer: 0,
@@ -48,6 +66,21 @@ for(const s of VEHICLE_SPOTS){
   cyl.ref = v;
   solidCyls.push(cyl);
   vehicles.push(v);
+}
+const interactEl = document.getElementById('interact');
+function nearestVehicle(maxD){
+  let best = null, bd = maxD;
+  for(const v of vehicles){
+    if(!v.alive) continue;
+    const d = Math.hypot(v.group.position.x - player.pos.x, v.group.position.z - player.pos.z);
+    if(d < bd){ bd = d; best = v; }
+  }
+  return best;
+}
+function updateInteractPrompt(){
+  const show = matchStarted && gameState.playing && player.alive && !player.driving &&
+               player.dropState === 'none' && !inventoryOpen && nearestVehicle(4.2);
+  interactEl.style.display = show ? 'block' : 'none';
 }
 function tryVehicleToggle(){
   if(player.driving){
@@ -63,12 +96,7 @@ function tryVehicleToggle(){
     showToast('EXITED VEHICLE');
     return;
   }
-  let best = null, bd = 4.2;
-  for(const v of vehicles){
-    if(!v.alive) continue;
-    const d = Math.hypot(v.group.position.x - player.pos.x, v.group.position.z - player.pos.z);
-    if(d < bd){ bd = d; best = v; }
-  }
+  const best = nearestVehicle(4.2);
   if(best){
     player.driving = best;
     player.firing = false; player.aiming = false; player.charging = false;
@@ -133,7 +161,7 @@ function updateVehicles(dt){
         p.x = clamp(nx, -HALF+6, HALF-6);
         p.z = clamp(nz, -HALF+6, HALF-6);
       }
-      const g = groundAt(p.x, p.z);
+      const g = groundAt(p.x, p.z, p.y + 0.4);
       p.y = g;
       if(g < -1.9) v.speed *= (1 - dt*2);                        // wading slows you down
       // align to the slope
@@ -166,7 +194,7 @@ function updateVehicles(dt){
       rig.position.copy(player.pos);
       rig.position.y += 0.9;
       rig.rotation.y = player.yaw;
-      camera.rotation.x = player.pitch;
+      pitchPivot.rotation.x = player.pitch;
       SFX.setEngine(true, v.speed);
       // zone still hurts drivers — handled by updateZone via player.pos
     } else if(v.alive){

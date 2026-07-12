@@ -16,9 +16,10 @@ const bots = [];
 const waypoints = [];
 doorSpots.forEach(d => waypoints.push({x:d.x, z:d.z}));
 // cluster plazas + the lake shore
-[[0,34],[-260,180],[222,-220],[240,252],[-150,-12],[-320,-318],[336,308],[0,356]].forEach(p => waypoints.push({x:p[0], z:p[1]}));
-for(let i=0;i<60;i++){
-  const x = randRange(-380,380), z = randRange(-380,380);
+[[0,34],[-260,180],[222,-220],[240,252],[-150,-12],[-320,-318],[336,308],[0,356],
+ [128,470],[-495,-95],[388,-468],[250,60],[-300,-50]].forEach(p => waypoints.push({x:p[0], z:p[1]}));
+for(let i=0;i<72;i++){
+  const x = randRange(-560,560), z = randRange(-560,560);
   if(!insideBuilding(x,z,2) && heightAt(x,z) > 0) waypoints.push({x,z});
 }
 
@@ -111,7 +112,7 @@ for(let i=0;i<BOT_COUNT;i++){
   // preferred landing spot (used by the plane drop; also the fallback ground spawn)
   let x, z, guard = 0;
   do {
-    const a = randRange(0,Math.PI*2), r = randRange(90,430);
+    const a = randRange(0,Math.PI*2), r = randRange(100,600);
     x = Math.cos(a)*r; z = Math.sin(a)*r; guard++;
   } while((insideBuilding(x,z,3) || heightAt(x,z) < 0.3) && guard < 150);
   bot.landing = { x, z };
@@ -173,7 +174,7 @@ function botThink(b){
   for(const c of crates){
     if(c.taken) continue;
     const d = Math.hypot(c.group.position.x - p.x, c.group.position.z - p.z);
-    if(d < 2.4){
+    if(d < 2.4 && Math.abs(c.group.position.y - p.y) < 2){
       if(c.loot === 'medkit' && b.medkits < 2){ b.medkits++; c.taken = true; scene.remove(c.group); }
       else if(c.loot === 'armor' && b.armor < 60){ b.armor = Math.min(100, b.armor + 60); c.taken = true; scene.remove(c.group); }
       else if(c.loot === 'frag' && b.frags < 2){ b.frags++; c.taken = true; scene.remove(c.group); }
@@ -292,7 +293,7 @@ function updateBot(b, dt){
       p.z += Math.cos(b.yaw) * moveSpeed * dt;
       resolveCollisions(p, 0.42, 1.5);
       p.x = clamp(p.x, -HALF+4, HALF-4); p.z = clamp(p.z, -HALF+4, HALF-4);
-      p.y = groundAt(p.x, p.z);
+      p.y = groundAt(p.x, p.z, p.y + 0.1);
     }
   } else {
     b.idle -= dt;
@@ -305,7 +306,7 @@ function updateBot(b, dt){
       } else if(b.target) b.healT = 0;
       if(b.coverT <= 0) b.state = 'wander';
     }
-    p.y = groundAt(p.x, p.z);
+    p.y = groundAt(p.x, p.z, p.y + 0.1);
   }
 
   // face target while engaging

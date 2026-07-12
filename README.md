@@ -6,7 +6,7 @@ A low-poly battle royale shooter for the browser, built with [Three.js](https://
 
 ## How to play
 
-A cargo plane carries 40 combatants across a 1 km × 1 km island — pick your moment, press F, and parachute in. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates for ammo, armor, medkits and grenades, grab a buggy to rotate, and watch the kill feed. The island has three villages, a military depot, farms, lone houses and a lake, all linked by dirt roads.
+A cargo plane carries 40 combatants across a 1.4 km × 1.4 km island — pick your moment, press F, and parachute in. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates for typed ammo, armor, medkits and grenades, grab a roadside buggy to rotate, and watch the kill feed. The island has four villages, a military depot, a quarry, farms with silos, watchtowers, lone houses and a lake, all linked by dirt roads.
 
 | Input | Action |
 |---|---|
@@ -19,8 +19,10 @@ A cargo plane carries 40 combatants across a 1 km × 1 km island — pick your m
 | **1 / 2 / 3** | Switch between rifle / shotgun / sniper |
 | **E** | Open the inventory — click a medkit or grenade to take it in hand |
 | **Click** (item in hand) | Apply the medkit (4s cast) or throw the grenade |
-| **F** | Jump from the plane · enter / exit a vehicle |
-| **Hold click** (sniper) | Charge the shot — the bullet fires when you release |
+| **F** | Jump from the plane · enter / exit a vehicle (prompt appears when close) |
+| **V** | Toggle first / third person — works while parachuting too |
+| **Click** (sniper, scoped) | Fires immediately |
+| **Hold click** (sniper, hip) | Charge the shot — fires when you release |
 
 ## Project layout
 
@@ -36,7 +38,8 @@ js/combat.js       hitscan raycasting, weapon stats, loot crates
 js/effects.js      particle pools, bullet tracers, impact FX
 js/player.js       player state, gun viewmodels, shooting, input, movement
 js/bots.js         humanoid bots — AI, walk animation, ragdolls, damage + kills
-js/items.js        inventory, held items, grenades, explosions, loot pickup
+js/avatar.js       third-person view: player character + orbit camera
+js/items.js        inventory, held items, grenades, smoke, explosions, loot pickup
 js/vehicle.js      drivable buggies
 js/drop.js         the cargo plane, freefall and parachutes
 js/game.js         shrinking zone, minimap, HUD, career stats, match flow, main loop
@@ -46,14 +49,16 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 
 ## Features
 
-- Procedural 1 km × 1 km terrain colored by height and slope — grass, dirt, rock, sand beaches, a lake — with a road network connecting 34 buildings across six settlements
-- Full procedural soundscape: gunshots with distance muffling and stereo panning, footsteps, reloads, explosions, zone sirens, engine/plane/freefall loops — all synthesized, no audio files
-- The match opens with a cargo-plane drop: pick your exit, freefall with steering, parachute in — the 39 bots bail out along the flight path too
-- Custom shaders: animated water with sun glints, per-fragment ground grain, drifting cloud shadows, gradient sky, striped zone force-field
-- Trees and boulders have real hitboxes — trunks block movement and bullets, canopies block line of sight
-- E-key inventory with held items: medkits (4s cast), frag grenades with arc, bounce and cover-aware blast damage, smoke grenades that block bot vision
-- Armor with visible blue bar — soaks 70% of incoming damage while it lasts; bots wear it too (their helmets and vests are real)
-- Five drivable buggies: slope-following arcade physics, run-overs, engine audio, explosive wrecks
-- 39 bots that parachute in, roam between settlements, hear gunfire and investigate, hunt whoever shot them, heal with their own medkits behind cover, lob grenades at campers, and predict the next zone circle
-- Career stats saved in the browser: matches, wins, kills, best placement — plus per-match damage, accuracy and survival time on the end screen
-- Shrinking zone with countdown timers, kill feed, minimap with flight path and zone circles, victory & death screens
+- Procedural 1.4 km × 1.4 km island with domain-warped ridgelines, crisp dirt roads, sand beaches and a lake; ~50 buildings across eight settlement sites
+- Building variety: houses, two-storey houses, walk-up apartments with real second floors and outside staircases (bonus loot upstairs), barns, sheds, flat-roof warehouses with roll doors, farm silos and hilltop watchtowers, in six paint palettes
+- Third-person view on V — see your own character (with your actual weapon in hand), over-shoulder camera with collision, automatic during the parachute drop
+- The match opens with a cargo-plane drop; all 39 bots bail out along the flight path under their own canopies
+- Full procedural soundscape (Web Audio, no files): panned distance-muffled gunshots, footsteps, reloads, explosions, sirens, engine/plane/freefall loops
+- Loot with typed ammo — 5.56 for the rifle, 12-gauge shells, 7.62 for the sniper — plus armor vests, medkits, frag and smoke grenades, all as recognizable 3D models
+- Real smoke: soft round sprite clouds ~18 m across that sit where they land for 20 seconds and genuinely blind bots (inside or through)
+- Armor bar soaks 70% of damage; bots' helmets and vests grant them the same protection
+- Eight buggies parked along the roads with a PUBG-style "F — DRIVE" prompt, slope physics, run-overs and explosive wrecks
+- 39 bots that hear gunfire, hunt attackers, loot crates, heal behind cover, throw grenades, and rotate to the next zone circle early
+- Sniper: click fires instantly when scoped; from the hip, hold and release for a deliberate shot
+- Shrinking zone with countdown timers on every phase; kill feed, kills counter, minimap with flight path
+- End screen with placement banner and stat tiles (kills, damage, accuracy, survival time) plus persistent career stats

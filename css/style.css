@@ -162,3 +162,24 @@
   .invrow .eq { font-size:10px; letter-spacing:2px; color:#f2a900; }
   .invhint { margin-top:6px; font-size:11px; color:#7d8790; letter-spacing:1px; text-align:center; }
   .stats .career { color:#f2a900; font-size:13px; letter-spacing:1px; }
+
+  /* ---------- vehicle interact prompt ---------- */
+  #interact { position:absolute; left:50%; bottom:190px; transform:translateX(-50%);
+    display:none; color:#fff; font-size:15px; letter-spacing:3px;
+    background:rgba(10,12,14,0.75); border:1px solid rgba(255,255,255,0.3);
+    padding:8px 20px; border-radius:4px; text-shadow:0 1px 3px #000; }
+  #interact b { color:#f2a900; }
+
+  /* ---------- end screen stats ---------- */
+  #placebanner { font-size:30px; font-weight:900; color:#fff; letter-spacing:2px;
+    background:rgba(10,12,14,0.7); border:1px solid rgba(242,169,0,0.55);
+    padding:8px 28px; border-radius:4px; margin-bottom:18px; }
+  #placebanner span { color:#8a949c; font-size:18px; font-weight:600; }
+  #endscreen.win #placebanner { color:#ffd35c; box-shadow:0 0 30px rgba(242,169,0,0.25); }
+  .statgrid { display:flex; gap:12px; margin-top:26px; }
+  .stattile { min-width:118px; padding:14px 10px 12px; background:rgba(12,15,18,0.85);
+    border:1px solid rgba(255,255,255,0.14); border-top:2px solid rgba(242,169,0,0.6);
+    border-radius:5px; }
+  .stattile .v { font-size:30px; font-weight:800; color:#fff; }
+  .stattile .l { margin-top:4px; font-size:9px; letter-spacing:2.5px; color:#8a949c; }
+  #endscreen .stats { margin-top:18px; }

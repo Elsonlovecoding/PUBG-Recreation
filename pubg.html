@@ -44,6 +44,7 @@
     <div class="itemhint">[E] INVENTORY</div>
   </div>
   <div id="dropmsg">PRESS <b>F</b> TO JUMP</div>
+  <div id="interact"><b>F</b> — DRIVE</div>
   <div id="ammo">
     <div id="weaponname">RIFLE</div>
     <div id="ammotext">30 <small>/ 90</small></div>
@@ -78,14 +79,22 @@
     <span><b>Right Click</b> — Aim (sniper scope)</span><span><b>Shift</b> — Sprint</span>
     <span><b>Space</b> — Jump</span><span><b>R</b> — Reload</span>
     <span><b>1 / 2 / 3</b> — Weapons</span><span><b>E</b> — Inventory (meds &amp; throwables)</span>
-    <span><b>F</b> — Jump from plane / Vehicle</span><span><b>Sniper</b> — Hold fire, release to shoot</span>
+    <span><b>F</b> — Jump from plane / Vehicle</span><span><b>V</b> — First / third person</span>
+    <span><b>Sniper</b> — Scoped: click to fire &middot; hip: hold &amp; release</span>
   </div>
   <div class="flavor">40 players &middot; parachute in &middot; last one standing wins</div>
   <div class="flavor" id="careerline"></div>
 </div>
 
 <div id="endscreen" class="screen">
+  <div id="placebanner">#1 <span>/ 40</span></div>
   <h1 id="endtitle">WINNER WINNER CHICKEN DINNER!</h1>
+  <div class="statgrid">
+    <div class="stattile"><div class="v" id="st-kills">0</div><div class="l">KILLS</div></div>
+    <div class="stattile"><div class="v" id="st-dmg">0</div><div class="l">DAMAGE</div></div>
+    <div class="stattile"><div class="v" id="st-acc">0%</div><div class="l">ACCURACY</div></div>
+    <div class="stattile"><div class="v" id="st-time">0:00</div><div class="l">SURVIVED</div></div>
+  </div>
   <div class="stats" id="endstats"></div>
   <div class="rule"></div>
   <button class="btn" onclick="location.reload()">Play Again</button>
@@ -108,6 +117,7 @@
 <script src="js/effects.js"></script>
 <script src="js/player.js"></script>
 <script src="js/bots.js"></script>
+<script src="js/avatar.js"></script>
 <script src="js/items.js"></script>
 <script src="js/vehicle.js"></script>
 <script src="js/drop.js"></script>

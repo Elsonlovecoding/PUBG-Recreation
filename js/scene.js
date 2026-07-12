@@ -12,8 +12,8 @@ renderer.domElement.className = 'game';
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(SKY_HORIZON, 95, 560);
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.08, 2400);
+scene.fog = new THREE.Fog(SKY_HORIZON, 100, 640);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.08, 3000);
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth/window.innerHeight;

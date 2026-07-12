@@ -62,7 +62,9 @@ function resolveCollisions(p, radius, height){
 
 const gunRoot = new THREE.Object3D();          // holds current viewmodel, bottom-right of view
 camera.add(gunRoot);
-head.add(camera);
+const pitchPivot = new THREE.Object3D();       // pitch node — camera orbits it in third person
+head.add(pitchPivot);
+pitchPivot.add(camera);
 const GUN_REST = new THREE.Vector3(0.24, -0.20, -0.42);
 const GUN_ADS  = new THREE.Vector3(0, -0.175, -0.36);
 gunRoot.position.copy(GUN_REST);
@@ -115,8 +117,8 @@ function playerShoot(){
   player.cooldown = 60 / W.rpm;
   camera.getWorldDirection(_fwd);
   const origin = new THREE.Vector3(player.pos.x, player.pos.y + 1.62, player.pos.z);
-  _muzzleWorld.copy(currentGunMesh.userData.muzzle);
-  currentGunMesh.localToWorld(_muzzleWorld);
+  if(effectiveThird()) avatarMuzzle.getWorldPosition(_muzzleWorld);
+  else { _muzzleWorld.copy(currentGunMesh.userData.muzzle); currentGunMesh.localToWorld(_muzzleWorld); }
   const spread = player.aiming ? W.spread * (player.weapon === 'sniper' ? 0.05 : 0.55) : W.spread;
   matchStats.fired += W.pellets;
   for(let i=0;i<W.pellets;i++){
@@ -199,6 +201,7 @@ document.addEventListener('keydown', e => {
     if(player.dropState === 'plane') jumpFromPlane();
     else if(player.alive && player.dropState === 'none' && !inventoryOpen) tryVehicleToggle();
   }
+  if(e.code === 'KeyV' && player.alive && player.dropState !== 'plane') toggleView();
   if(inventoryOpen || player.driving || player.dropState !== 'none') return;
   if(e.code === 'KeyR') startReload();
   if(e.code === 'Digit1' && player.owned.rifle) setWeapon('rifle');
@@ -212,7 +215,12 @@ document.addEventListener('mousedown', e => {
     if(player.holding === 'medkit'){ startHeal(); return; }
     if(player.holding === 'frag' || player.holding === 'smoke'){ throwHeld(); return; }
     if(player.healing > 0) cancelHeal();
-    if(player.weapon === 'sniper'){ player.charging = true; return; }   // fires on release
+    if(player.weapon === 'sniper'){
+      if(scopeShown){                                       // scoped: fire the moment you click
+        if(player.cooldown <= 0 && player.reloading <= 0 && player.healing <= 0) playerShoot();
+      } else player.charging = true;                        // hip: hold, release to fire
+      return;
+    }
     player.firing = true; player.fireLatch = false;
   }
   else if(e.button === 2 && player.holding === 'gun') player.aiming = true;
@@ -242,7 +250,7 @@ let footstepTimer = 0;
 function updatePlayer(dt){
   if(!player.alive || player.driving || player.dropState !== 'none') return;
   rig.rotation.y = player.yaw;
-  camera.rotation.x = player.pitch;
+  pitchPivot.rotation.x = player.pitch;
 
   const sprint = keys.ShiftLeft || keys.ShiftRight;
   let ix = 0, iz = 0;
@@ -272,7 +280,7 @@ function updatePlayer(dt){
   player.pos.x = clamp(player.pos.x, -HALF+4, HALF-4);
   player.pos.z = clamp(player.pos.z, -HALF+4, HALF-4);
   resolveCollisions(player.pos, 0.45, 1.6);
-  const g = groundAt(player.pos.x, player.pos.z);
+  const g = groundAt(player.pos.x, player.pos.z, player.pos.y + 0.1);
   if(player.pos.y <= g){ player.pos.y = g; player.vel.y = 0; player.grounded = true; }
   else if(player.pos.y - g > 0.02) player.grounded = false;
 
@@ -294,7 +302,7 @@ function updatePlayer(dt){
   head.position.x = Math.sin(player.bobPhase) * 0.022 * bobA;
   head.rotation.y = Math.sin(performance.now()*0.0009) * 0.0014 * ab * steady;
   camera.rotation.z = Math.sin(player.bobPhase) * 0.006 * bobA;
-  camera.rotation.x += Math.sin(performance.now()*0.0013) * 0.0012 * ab * steady;   // breathing sway
+  pitchPivot.rotation.x += Math.sin(performance.now()*0.0013) * 0.0012 * ab * steady;   // breathing sway
   const scoped = player.aiming && player.weapon === 'sniper' && player.holding === 'gun';
   let targetFov = 75;
   if(player.aiming && player.holding === 'gun') targetFov = scoped ? 18 : 62;
@@ -349,6 +357,6 @@ function updatePlayer(dt){
   for(const c of crates){
     if(c.taken) continue;
     const dx = c.group.position.x - player.pos.x, dz = c.group.position.z - player.pos.z;
-    if(dx*dx + dz*dz < 2.6) tryPickup(c);
+    if(dx*dx + dz*dz < 2.6 && Math.abs(c.group.position.y - player.pos.y) < 2.2) tryPickup(c);
   }
 }
