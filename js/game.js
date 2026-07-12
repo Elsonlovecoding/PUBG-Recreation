@@ -2,13 +2,13 @@
 // PUBG Recreation — zone, minimap, HUD, match flow, main loop
 
 // ---------------- shrinking zone ----------------
-const zone = { cx:0, cz:0, r:245, tcx:0, tcz:0, tr:245, scx:0, scz:0, sr:245, phase:0, state:'wait', t:20 };
+const zone = { cx:0, cz:0, r:430, tcx:0, tcz:0, tr:430, scx:0, scz:0, sr:430, phase:0, state:'wait', t:25 };
 const ZONE_PHASES = [
-  { wait:20, shrink:24, mul:0.60 },
-  { wait:15, shrink:18, mul:0.58 },
-  { wait:12, shrink:15, mul:0.55 },
-  { wait:10, shrink:12, mul:0.50 },
-  { wait:9,  shrink:10, mul:0.45 },
+  { wait:25, shrink:26, mul:0.58 },
+  { wait:17, shrink:20, mul:0.56 },
+  { wait:14, shrink:16, mul:0.54 },
+  { wait:11, shrink:13, mul:0.50 },
+  { wait:9,  shrink:11, mul:0.45 },
   { wait:8,  shrink:9,  mul:0.05 },
 ];
 const zoneWallMat = new THREE.ShaderMaterial({
@@ -45,8 +45,8 @@ function updateZone(dt){
       zone.scx = zone.cx; zone.scz = zone.cz; zone.sr = zone.r;
       const nr = Math.max(12, zone.r * P.mul);
       const a = randRange(0, Math.PI*2), off = randRange(0, (zone.r - nr) * 0.8);
-      zone.tcx = clamp(zone.cx + Math.cos(a)*off, -170, 170);
-      zone.tcz = clamp(zone.cz + Math.sin(a)*off, -170, 170);
+      zone.tcx = clamp(zone.cx + Math.cos(a)*off, -320, 320);
+      zone.tcz = clamp(zone.cz + Math.sin(a)*off, -320, 320);
       zone.tr = nr;
       zone.state = 'shrink'; zone.t = P.shrink;
     }
@@ -91,18 +91,19 @@ function updateZone(dt){
 const mapCanvas = document.getElementById('minimap');
 const mapCtx = mapCanvas.getContext('2d');
 const MAP_S = 190;
+const MBG = 176;
 const mapBg = document.createElement('canvas');
-mapBg.width = 128; mapBg.height = 128;
+mapBg.width = MBG; mapBg.height = MBG;
 {
   const bctx = mapBg.getContext('2d');
-  const img = bctx.createImageData(128,128);
-  for(let py=0; py<128; py++){
-    for(let px=0; px<128; px++){
-      const x = (px/127)*WORLD - HALF, z = (py/127)*WORLD - HALF;
+  const img = bctx.createImageData(MBG,MBG);
+  for(let py=0; py<MBG; py++){
+    for(let px=0; px<MBG; px++){
+      const x = (px/(MBG-1))*WORLD - HALF, z = (py/(MBG-1))*WORLD - HALF;
       const h = heightAt(x,z);
       const c = colorFor(x, z, h, slopeAt(x,z));
       const shade = 0.82 + clamp(h*0.012, -0.12, 0.18);
-      const i = (py*128+px)*4;
+      const i = (py*MBG+px)*4;
       img.data[i]   = clamp(c[0]*shade,0,1)*255;
       img.data[i+1] = clamp(c[1]*shade,0,1)*255;
       img.data[i+2] = clamp(c[2]*shade,0,1)*255;
@@ -112,7 +113,7 @@ mapBg.width = 128; mapBg.height = 128;
   bctx.putImageData(img,0,0);
   bctx.fillStyle = 'rgba(70,70,75,0.95)';
   for(const b of buildings){
-    bctx.fillRect((b.x-b.w/2+HALF)/WORLD*128, (b.z-b.d/2+HALF)/WORLD*128, b.w/WORLD*128+1, b.d/WORLD*128+1);
+    bctx.fillRect((b.x-b.w/2+HALF)/WORLD*MBG, (b.z-b.d/2+HALF)/WORLD*MBG, b.w/WORLD*MBG+1, b.d/WORLD*MBG+1);
   }
 }
 function W2M(v){ return (v+HALF)/WORLD*MAP_S; }
@@ -176,6 +177,11 @@ function updateAmmoHUD(){
   }
   document.getElementById('slots').innerHTML = slots;
 }
+function updateMedkitHUD(){
+  const m = document.getElementById('medkits');
+  m.textContent = '\u271A ' + player.medkits;
+  m.className = player.medkits > 0 ? '' : 'empty';
+}
 function updateAliveHUD(){
   const n = aliveBotCount() + (player.alive ? 1 : 0);
   document.getElementById('alive').innerHTML = n + '<small>ALIVE</small>';
@@ -212,32 +218,37 @@ function startMatch(){
   // spawn on the map rim, on open ground
   let sx, sz, guard = 0;
   do {
-    const a = randRange(0, Math.PI*2), r = randRange(110, 170);
+    const a = randRange(0, Math.PI*2), r = randRange(210, 330);
     sx = Math.cos(a)*r; sz = Math.sin(a)*r; guard++;
   } while((insideBuilding(sx,sz,4) || heightAt(sx,sz) < 0.5) && guard < 200);
   player.pos.set(sx, groundAt(sx,sz), sz);
   player.yaw = Math.atan2(sx, sz) + Math.PI;   // face map centre... roughly
   player.vel.set(0,0,0);
-  updateHealthHUD(); updateAmmoHUD(); updateAliveHUD();
+  updateHealthHUD(); updateAmmoHUD(); updateAliveHUD(); updateMedkitHUD();
 }
 window.__start = startMatch;   // dev hook: start match without pointer lock
+window.__dev = {               // dev/test hooks
+  bots, player, heightAt, solidCyls, crates,
+  tp(x, z, yaw, pitch){ player.pos.set(x, groundAt(x,z), z); player.yaw = yaw||0; player.pitch = pitch||0; },
+};
 function endGame(win, killerName){
   if(gameState.over) return;
   gameState.over = true; gameState.playing = false;
   player.firing = false;
   player.aiming = false;
   setScopeUI(false);
+  cancelHeal();
   const end = document.getElementById('endscreen');
   const title = document.getElementById('endtitle');
   const stats = document.getElementById('endstats');
   if(win){
     end.className = 'screen win';
     title.textContent = 'WINNER WINNER CHICKEN DINNER!';
-    stats.textContent = '#1 of 16   ·   ' + player.kills + ' kills';
+    stats.textContent = '#1 of 24   ·   ' + player.kills + ' kills';
   } else {
     end.className = 'screen';
     title.textContent = 'YOU DIED';
-    stats.textContent = 'Placed #' + (aliveBotCount()+1) + ' of 16   ·   ' + player.kills +
+    stats.textContent = 'Placed #' + (aliveBotCount()+1) + ' of 24   ·   ' + player.kills +
       ' kills   ·   eliminated by ' + killerName;
   }
   setTimeout(() => {
@@ -306,9 +317,11 @@ function animate(){
   sky.position.set(anchor.x, 0, anchor.z);
   clouds.position.x = Math.sin(t*0.008)*24;
   clouds.position.z = Math.cos(t*0.006)*18;
+  waterMat.uniforms.time.value = t;
+  if(terrainMat.userData.shader) terrainMat.userData.shader.uniforms.uTime.value = t;
 
   if(matchStarted) drawMinimap();
   renderer.render(scene, camera);
 }
-updateHealthHUD(); updateAmmoHUD(); updateAliveHUD();
+updateHealthHUD(); updateAmmoHUD(); updateAliveHUD(); updateMedkitHUD();
 animate();

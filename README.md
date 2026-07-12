@@ -6,7 +6,7 @@ A low-poly battle royale shooter for the browser, built with [Three.js](https://
 
 ## How to play
 
-You drop onto a 500×500 island with 15 bots, carrying all three weapons — rifle, shotgun and sniper. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates in the village buildings for ammo and medkits, and watch the kill feed.
+You drop onto a 900×900 island with 23 bots, carrying all three weapons — rifle, shotgun and sniper. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot the crates in buildings for ammo and medkits, and watch the kill feed. The island has two villages, a military depot, a hilltop farm, lone houses and a lake, all linked by dirt roads.
 
 | Input | Action |
 |---|---|
@@ -17,6 +17,7 @@ You drop onto a 500×500 island with 15 bots, carrying all three weapons — rif
 | **Space** | Jump |
 | **R** | Reload |
 | **1 / 2 / 3** | Switch between rifle / shotgun / sniper |
+| **4 / H** | Apply a medkit (4s cast, cancelled by jumping or firing) |
 
 ## Project layout
 
@@ -38,8 +39,12 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 
 ## Features
 
-- Procedural terrain colored by height and slope — grass, dirt, rock, sand beaches — with dirt roads connecting a village
+- Procedural 900×900 terrain colored by height and slope — grass, dirt, rock, sand beaches, a lake — with a road network connecting 27 buildings across four settlements
+- Custom shaders: animated water with sun glints, per-fragment ground grain, drifting cloud shadows, gradient sky with sun glow, striped zone force-field
 - Real-time PCFSoft shadows, hemisphere + ambient fill, distance fog matched to the sky
+- Trees and boulders have real hitboxes — trunks block movement and bullets, canopies block line of sight
 - Three weapons with distinct viewmodels, recoil, muzzle flash, tracers and hit sparks; right-click aiming with a scoped sniper view
-- 15 bots that roam, chase, take cover, fight each other, and ragdoll on death
-- Shrinking zone wall, loot crates, medkits, kill feed, minimap, victory & death screens
+- Loot is recognizable at a glance: miniature weapon models and a red-cross medkit case float over crates
+- 23 bots that roam between settlements, chase, hunt whoever shot them, heal behind cover, fight each other, and ragdoll on death
+- PUBG-style medkits: carried in inventory (up to 4) and applied with a 4-second cast
+- Shrinking zone wall, kill feed, minimap with zone circles, victory & death screens

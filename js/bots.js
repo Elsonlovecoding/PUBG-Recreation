@@ -4,17 +4,20 @@
 // ---------------- bots ----------------
 const BOT_NAMES = ['ShroudFan42','xX_Sn1per_Xx','PanBandit','ChickenChaser','NoScope99','CamperJoe',
   'FryingPanda','ZoneRunner','LootGoblin','M416Enjoyer','GhillieBoi','RedZoneRick','ProneStar',
-  'BushWookie','CircleKing','DinnerSeeker'];
+  'BushWookie','CircleKing','DinnerSeeker','PochinkiPete','CrateChaser','Level3Helmet',
+  'EnerDrinker','SchoolDropper','GhillieGirl','AFKAndy'];
+const BOT_COUNT = 23;
 const SHIRT_COLORS = [0x5a7d9c, 0x9c5a5a, 0x6f8f5a, 0x8f7a4a, 0x7a5a8f, 0x4a8f8a, 0xa06a3a, 0x616a72];
 const PANTS_COLORS = [0x3a4148, 0x4a4238, 0x39424a, 0x50483c];
 const SKIN = 0xd9a066;
 const bots = [];
 const waypoints = [];
 doorSpots.forEach(d => waypoints.push({x:d.x, z:d.z}));
-waypoints.push({x:0, z:34});                         // village plaza
-for(let i=0;i<26;i++){
-  const x = randRange(-160,160), z = randRange(-160,160);
-  if(!insideBuilding(x,z,2)) waypoints.push({x,z});
+// cluster plazas + the lake shore
+[[0,34],[-260,180],[222,-220],[240,252],[-150,-12]].forEach(p => waypoints.push({x:p[0], z:p[1]}));
+for(let i=0;i<44;i++){
+  const x = randRange(-340,340), z = randRange(-340,340);
+  if(!insideBuilding(x,z,2) && heightAt(x,z) > 0) waypoints.push({x,z});
 }
 
 function buildBotMesh(shirtHex, pantsHex){
@@ -44,7 +47,7 @@ function buildBotMesh(shirtHex, pantsHex){
   return { g, armL, armR, legL, legR, mats };
 }
 
-for(let i=0;i<15;i++){
+for(let i=0;i<BOT_COUNT;i++){
   const parts = buildBotMesh(
     SHIRT_COLORS[i % SHIRT_COLORS.length],
     PANTS_COLORS[i % PANTS_COLORS.length]);
@@ -56,14 +59,15 @@ for(let i=0;i<15;i++){
     state: 'wander', dest: null, idle: randRange(0,2),
     target: null, thinkT: Math.random()*0.3, burst: 0, burstPause: randRange(0.5,1.5),
     shootT: 0, coverT: 0, walkPhase: Math.random()*6,
-    speed: randRange(3.8,4.6), dead: false, deathT: 0, fallAxis: null, yaw: randRange(0,Math.PI*2),
+    speed: randRange(4.0,5.0), dead: false, deathT: 0, fallAxis: null, yaw: randRange(0,Math.PI*2),
+    threat: null, threatT: 0,
   };
   // spawn scattered, away from player spawn & buildings
   let x, z, guard = 0;
   do {
-    const a = randRange(0,Math.PI*2), r = randRange(50,190);
+    const a = randRange(0,Math.PI*2), r = randRange(90,380);
     x = Math.cos(a)*r; z = Math.sin(a)*r; guard++;
-  } while(insideBuilding(x,z,3) && guard < 60);
+  } while((insideBuilding(x,z,3) || heightAt(x,z) < 0.3) && guard < 150);
   bot.group.position.set(x, groundAt(x,z), z);
   scene.add(bot.group);
   bots.push(bot);
@@ -78,7 +82,7 @@ function visibleEnemies(b){
   const out = [], e = botEye(b);
   const consider = (px,py,pz, ref) => {
     const dx=px-e.x, dz=pz-e.z, d2=dx*dx+dz*dz;
-    if(d2 > 70*70) return;
+    if(d2 > 80*80) return;
     if(hasLOS(e.x,e.y,e.z, px,py+1.3,pz)) out.push({ ref, d2 });
   };
   if(player.alive && gameState.playing) consider(player.pos.x, player.pos.y, player.pos.z, 'player');
@@ -102,7 +106,7 @@ function botThink(b){
   }
   if(enemies.length){
     b.target = enemies[0].ref;
-    if(b.hp < 32 && b.state !== 'cover'){
+    if(b.hp < 45 && b.state !== 'cover'){
       // fall back to nearest cover corner away from the threat
       const tp = b.target === 'player' ? player.pos : b.target.group.position;
       let best = null, bestScore = -1e9;
@@ -113,13 +117,13 @@ function botThink(b){
         const score = dThreat - dSelf*1.4;
         if(score > bestScore){ bestScore = score; best = c; }
       }
-      if(best){ b.state = 'cover'; b.coverT = randRange(3,5); b.dest = { x:best.x, z:best.z }; return; }
+      if(best){ b.state = 'cover'; b.coverT = randRange(3.5,6); b.dest = { x:best.x, z:best.z }; return; }
     }
     if(b.state !== 'cover'){
       b.state = 'engage';
       const tp = b.target === 'player' ? player.pos : b.target.group.position;
       const d = Math.hypot(tp.x-p.x, tp.z-p.z);
-      if(d > 38) b.dest = { x: tp.x + randRange(-6,6), z: tp.z + randRange(-6,6) };
+      if(d > 45) b.dest = { x: tp.x + randRange(-6,6), z: tp.z + randRange(-6,6) };
       else if(d < 9) b.dest = { x: p.x + (p.x-tp.x)*0.8 + randRange(-3,3), z: p.z + (p.z-tp.z)*0.8 + randRange(-3,3) };
       else if(Math.random() < 0.4) b.dest = { x: p.x + randRange(-7,7), z: p.z + randRange(-7,7) };  // strafe
       else b.dest = null;                                                                            // stand & shoot
@@ -127,6 +131,11 @@ function botThink(b){
   } else {
     b.target = null;
     if(b.state === 'engage') b.state = 'wander';
+    if(b.threatT > 0 && !b.dest){
+      // someone shot us from cover — push toward where it came from
+      b.dest = { x: b.threat.x + randRange(-6,6), z: b.threat.z + randRange(-6,6) };
+      b.state = 'wander';
+    }
     if(b.state === 'wander' && !b.dest && b.idle <= 0) pickWaypoint(b);
   }
 }
@@ -138,15 +147,15 @@ function botShoot(b){
     : { x:b.target.group.position.x, y:b.target.group.position.y+1.2, z:b.target.group.position.z };
   const dx=tp.x-e.x, dy=tp.y-e.y, dz=tp.z-e.z;
   const dist = Math.sqrt(dx*dx+dy*dy+dz*dz);
-  const spread = 0.035 + dist*0.00045 + (b.dest ? 0.02 : 0);
+  const spread = 0.024 + dist*0.00038 + (b.dest ? 0.016 : 0);
   const d = new THREE.Vector3(dx/dist + randRange(-spread,spread), dy/dist + randRange(-spread,spread), dz/dist + randRange(-spread,spread)).normalize();
   const muzzle = { x: e.x + d.x*0.6, y: e.y - 0.25, z: e.z + d.z*0.6 };
-  const hit = castShot(new THREE.Vector3(muzzle.x, muzzle.y, muzzle.z), d, 130, b);
+  const hit = castShot(new THREE.Vector3(muzzle.x, muzzle.y, muzzle.z), d, 160, b);
   spawnTracer(muzzle.x, muzzle.y, muzzle.z, hit.x, hit.y, hit.z, 0xff8a5c);
   if(hit.kind !== 'none') impactFX(hit);
   burstSparks(muzzle.x, muzzle.y, muzzle.z, 0xffd27a, 2, 2);
   if(hit.kind === 'player') damagePlayer(W.botDmg + randRange(-2,2), b.name);
-  else if(hit.kind === 'bot') damageBot(hit.bot, W.botDmg + randRange(-2,3), b.name);
+  else if(hit.kind === 'bot') damageBot(hit.bot, W.botDmg + randRange(-2,3), b.name, b);
 }
 function updateBot(b, dt){
   const p = b.group.position;
@@ -167,7 +176,8 @@ function updateBot(b, dt){
     return;
   }
   b.thinkT -= dt;
-  if(b.thinkT <= 0){ botThink(b); b.thinkT = 0.28 + Math.random()*0.1; }
+  b.threatT -= dt;
+  if(b.thinkT <= 0){ botThink(b); b.thinkT = 0.20 + Math.random()*0.08; }
 
   // movement
   let moveSpeed = 0;
@@ -191,7 +201,11 @@ function updateBot(b, dt){
     }
   } else {
     b.idle -= dt;
-    if(b.state === 'cover'){ b.coverT -= dt; if(b.coverT <= 0) b.state = 'wander'; }
+    if(b.state === 'cover'){
+      b.coverT -= dt;
+      if(!b.target && b.hp < 65) b.hp = Math.min(65, b.hp + 11*dt);   // patch up behind cover
+      if(b.coverT <= 0) b.state = 'wander';
+    }
     p.y = groundAt(p.x, p.z);
   }
 
@@ -210,12 +224,12 @@ function updateBot(b, dt){
         const tpp = b.target === 'player' ? player.pos : b.target.group.position;
         if(hasLOS(e.x,e.y,e.z, tpp.x, tpp.y+1.3, tpp.z)) botShoot(b);
         b.burst--;
-        b.shootT = b.weapon === 'rifle' ? 0.14 : (b.weapon === 'shotgun' ? 0.8 : 1.3);
+        b.shootT = b.weapon === 'rifle' ? 0.13 : (b.weapon === 'shotgun' ? 0.75 : 1.2);
       } else {
         b.burstPause -= dt;
         if(b.burstPause <= 0){
-          b.burst = b.weapon === 'rifle' ? 3 + Math.floor(Math.random()*3) : 1;
-          b.burstPause = randRange(1.3, 2.6);
+          b.burst = b.weapon === 'rifle' ? 4 + Math.floor(Math.random()*3) : 1;
+          b.burstPause = randRange(1.0, 2.1);
         }
       }
     }
@@ -242,9 +256,14 @@ function updateBot(b, dt){
 // ---------------- damage / kills ----------------
 const gameState = { playing:false, over:false, startedAt:0 };
 function aliveBotCount(){ let n=0; for(const b of bots) if(b.alive) n++; return n; }
-function damageBot(bot, dmg, killerName){
+function damageBot(bot, dmg, killerName, attacker){
   if(!bot.alive) return;
   bot.hp -= dmg;
+  if(attacker){
+    const ap = attacker === 'player' ? player.pos : attacker.group.position;
+    bot.threat = { x: ap.x, z: ap.z };
+    bot.threatT = 7;
+  }
   if(killerName === 'You') showHitmarker();
   const p = bot.group.position;
   burstSparks(p.x, p.y+1.2, p.z, 0xffca7a, 4, 3);

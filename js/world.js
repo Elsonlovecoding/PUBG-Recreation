@@ -1,11 +1,49 @@
 'use strict';
 // PUBG Recreation — water, mountains, clouds, trees/rocks/grass, buildings + colliders
 
-// ---------------- water ring + horizon mountains + clouds ----------------
-const water = new THREE.Mesh(
-  new THREE.PlaneGeometry(2200, 2200),
-  new THREE.MeshPhongMaterial({ color:0x2c5f7a, specular:0x9fd4e8, shininess:110,
-    transparent:true, opacity:0.95 }));
+// ---------------- animated water (sea + lake share one shader plane) ----------------
+const waterMat = new THREE.ShaderMaterial({
+  transparent:true, fog:false,
+  uniforms: {
+    time:     { value: 0 },
+    sunDir:   { value: sunDirection.clone() },
+    deep:     { value: new THREE.Color(0x1d4a63) },
+    shallow:  { value: new THREE.Color(0x2f6f8d) },
+    fogColor: { value: new THREE.Color(SKY_HORIZON) },
+    fogNear:  { value: 90 }, fogFar: { value: 500 },
+  },
+  vertexShader: [
+    'uniform float time;',
+    'varying vec3 vW; varying float vDist;',
+    'void main(){',
+    '  vec4 wp = modelMatrix * vec4(position, 1.0);',
+    '  wp.y += sin(wp.x*0.06 + time*1.1)*0.12 + cos(wp.z*0.05 + time*0.8)*0.12;',  // gentle swell
+    '  vW = wp.xyz;',
+    '  vec4 mv = viewMatrix * wp;',
+    '  vDist = -mv.z;',
+    '  gl_Position = projectionMatrix * mv;',
+    '}'
+  ].join('\n'),
+  fragmentShader: [
+    'uniform vec3 sunDir, deep, shallow, fogColor; uniform float time, fogNear, fogFar;',
+    'varying vec3 vW; varying float vDist;',
+    'void main(){',
+    '  vec3 nrm = normalize(vec3(',
+    '    sin(vW.x*0.11 + time*1.4)*0.10 + sin(vW.x*0.023 - time*0.6)*0.06,',
+    '    1.0,',
+    '    cos(vW.z*0.09 + time*1.1)*0.10 + cos(vW.z*0.031 + time*0.5)*0.06));',
+    '  vec3 viewDir = normalize(cameraPosition - vW);',
+    '  float fres = pow(1.0 - max(dot(viewDir, nrm), 0.0), 2.0);',
+    '  vec3 col = mix(deep, shallow, 0.35 + 0.30*sin(vW.x*0.01 + vW.z*0.013 + time*0.2));',
+    '  col = mix(col, fogColor*0.95, fres*0.55);',                                // sky tint at grazing angles
+    '  vec3 h = normalize(viewDir + normalize(sunDir));',
+    '  col += vec3(1.0, 0.95, 0.85) * pow(max(dot(nrm, h), 0.0), 90.0) * 0.9;',   // sun glints
+    '  col = mix(col, fogColor, smoothstep(fogNear, fogFar, vDist));',
+    '  gl_FragColor = vec4(col, 0.94);',
+    '}'
+  ].join('\n')
+});
+const water = new THREE.Mesh(new THREE.PlaneGeometry(3200, 3200, 96, 96), waterMat);
 water.rotation.x = -Math.PI/2; water.position.y = -2.3;
 scene.add(water);
 
@@ -46,10 +84,10 @@ function xform(g, x,y,z, ry, sx,sy,sz){
 // horizon mountains ring (outside playable map, mostly silhouettes in the fog)
 {
   const mg = [];
-  for(let i=0;i<16;i++){
-    const a = (i/16)*Math.PI*2 + randRange(-0.12,0.12);
-    const rad = randRange(330, 440);
-    const w = randRange(38,78), h = randRange(42,95);
+  for(let i=0;i<22;i++){
+    const a = (i/22)*Math.PI*2 + randRange(-0.10,0.10);
+    const rad = randRange(560, 730);
+    const w = randRange(60,120), h = randRange(55,150);
     const col = new THREE.Color().setHSL(0.33+randRange(-0.04,0.07), 0.26, 0.33+randRange(-0.05,0.06));
     mg.push(xform(tintGeo(new THREE.ConeGeometry(w, h, 5+Math.floor(Math.random()*3)), col.getHex()),
       Math.cos(a)*rad, h/2-6, Math.sin(a)*rad, randRange(0,Math.PI)));
@@ -60,8 +98,8 @@ function xform(g, x,y,z, ry, sx,sy,sz){
 // clouds
 const clouds = new THREE.Mesh((()=> {
   const cg = [];
-  for(let i=0;i<11;i++){
-    const cx = randRange(-260,260), cz = randRange(-260,260), cy = randRange(120,175);
+  for(let i=0;i<17;i++){
+    const cx = randRange(-430,430), cz = randRange(-430,430), cy = randRange(135,200);
     const puffs = 3+Math.floor(Math.random()*3);
     for(let k=0;k<puffs;k++){
       cg.push(xform(tintGeo(new THREE.IcosahedronGeometry(randRange(10,19),0), 0xffffff),
@@ -72,6 +110,13 @@ const clouds = new THREE.Mesh((()=> {
   return mergeGeoms(cg);
 })(), new THREE.MeshBasicMaterial({ vertexColors:true, transparent:true, opacity:0.88 }));
 scene.add(clouds);
+
+// ---------------- collision registries ----------------
+const colliders = [];       // axis-aligned wall boxes for movement + bullets
+const doorSpots = [];       // outside-the-door waypoints for bots
+const coverSpots = [];      // building corners / boulders / thick trees
+const solidCyls = [];       // tree trunks + boulders: cylinders that block movement, bullets, LOS
+const foliageBalls = [];    // tree canopies: block line of sight only
 
 // ---------------- scatter placement helpers ----------------
 function insideBuilding(x, z, pad){
@@ -85,7 +130,7 @@ function slopeAt(x,z){
   return Math.hypot(heightAt(x+e,z)-heightAt(x-e,z), heightAt(x,z+e)-heightAt(x,z-e))/(2*e);
 }
 function goodScatterSpot(x, z, roadPad, bldPad){
-  if(Math.max(Math.abs(x),Math.abs(z)) > 225) return false;
+  if(Math.max(Math.abs(x),Math.abs(z)) > 415) return false;
   if(insideBuilding(x, z, bldPad)) return false;
   if(roadFactorGen(x,z) > roadPad) return false;
   return true;
@@ -96,16 +141,22 @@ const treeSpots = [];
 {
   const tg = [];
   let placed = 0, guard = 0;
-  while(placed < 175 && guard++ < 5000){
-    const x = randRange(-225,225), z = randRange(-225,225);
+  while(placed < 420 && guard++ < 16000){
+    const x = randRange(-415,415), z = randRange(-415,415);
     if(!goodScatterSpot(x,z,0.03,4.5) || slopeAt(x,z) > 0.62) continue;
-    if(heightAt(x,z) < -0.6) continue;                        // not on beach
+    if(heightAt(x,z) < -0.6) continue;                        // not on beaches or in the lake
     const y = heightAt(x,z), s = randRange(0.85,1.7), ry = randRange(0,Math.PI*2);
     const leaf = new THREE.Color().setHSL(0.29+randRange(-0.035,0.045), 0.42+randRange(-0.06,0.06), 0.32+randRange(-0.05,0.05));
     tg.push(xform(tintGeo(new THREE.CylinderGeometry(0.16,0.30,1.7,6), 0x6b4a2f), x, y+0.85*s, z, ry, s));
     tg.push(xform(tintGeo(new THREE.ConeGeometry(1.55,2.9,7), leaf.getHex()), x, y+(1.7+1.3)*s, z, ry, s));
     tg.push(xform(tintGeo(new THREE.ConeGeometry(1.12,2.2,7), leaf.getHex(), 1.12), x, y+(1.7+2.6)*s, z, ry, s));
     treeSpots.push({x,z,r:0.55*s});
+    solidCyls.push({ x, z, r: 0.30*s + 0.06, y0: y - 0.5, y1: y + 1.9*s, kind:'tree' });
+    foliageBalls.push({ x, y: y + 3.5*s, z, r: 1.35*s });
+    if(placed % 5 === 0){
+      const ca = randRange(0, Math.PI*2);
+      coverSpots.push({ x: x + Math.cos(ca)*1.7, z: z + Math.sin(ca)*1.7 });
+    }
     placed++;
   }
   const trees = new THREE.Mesh(mergeGeoms(tg), MAT_FLAT);
@@ -115,8 +166,8 @@ const treeSpots = [];
 {
   const rg = [];
   let placed = 0, guard = 0;
-  while(placed < 50 && guard++ < 2000){
-    const x = randRange(-230,230), z = randRange(-230,230);
+  while(placed < 110 && guard++ < 9000){
+    const x = randRange(-415,415), z = randRange(-415,415);
     if(!goodScatterSpot(x,z,0.05,3)) continue;
     const y = heightAt(x,z), r = randRange(0.5,1.9);
     const g = new THREE.IcosahedronGeometry(r, 0);
@@ -126,6 +177,8 @@ const treeSpots = [];
     }
     const grey = new THREE.Color().setHSL(0.08+randRange(0,0.04), 0.06, 0.42+randRange(-0.06,0.08));
     rg.push(xform(tintGeo(g, grey.getHex()), x, y+r*0.28, z, randRange(0,Math.PI*2)));
+    if(r > 0.7) solidCyls.push({ x, z, r: r*0.8, y0: y - 1.0, y1: y + r*0.9, kind:'rock' });
+    if(r > 1.3) coverSpots.push({ x: x + randRange(-2.2,2.2), z: z + randRange(-2.2,2.2) });
     placed++;
   }
   const rocks = new THREE.Mesh(mergeGeoms(rg), MAT_FLAT);
@@ -135,8 +188,8 @@ const treeSpots = [];
 {
   const gg = [];
   let placed = 0, guard = 0;
-  while(placed < 850 && guard++ < 9000){
-    const x = randRange(-220,220), z = randRange(-220,220);
+  while(placed < 1600 && guard++ < 22000){
+    const x = randRange(-415,415), z = randRange(-415,415);
     if(!goodScatterSpot(x,z,0.04,2) || heightAt(x,z) < -0.4) continue;
     const y = heightAt(x,z);
     const gcol = new THREE.Color().setHSL(0.21+randRange(-0.03,0.05), 0.46, 0.40+randRange(-0.05,0.07));
@@ -148,9 +201,6 @@ const treeSpots = [];
 }
 
 // ---------------- buildings: composed boxes, walkable doors, windows, roofs ----------------
-const colliders = [];   // axis-aligned wall boxes for movement + bullets
-const doorSpots = [];   // outside-the-door waypoints for bots
-const coverSpots = [];  // building corner cover points
 const PALETTES = [
   { wall:0xcfc3a8, trim:0x8d8069, roof:0x8a4438 },
   { wall:0xb06a4a, trim:0x7d4a35, roof:0x5c5852 },
@@ -226,7 +276,7 @@ function makeBuilding(b, idx){
     coverSpots.push({ x:b.x+sx*(b.w/2+1.3), z:b.z+sz*(b.d/2+1.3) });
   }
   // roof: pyramid hip roof or flat parapet roof for variety
-  if(idx % 3 === 2){
+  if(b.flat || idx % 3 === 2){
     bBox(b.w+1.3, 0.3, b.d+1.3, b.x, fy+H+0.15, b.z, P.roof, false);
     bBox(b.w+1.3, 0.55, 0.3, b.x, fy+H+0.55, b.z-(b.d+1.0)/2, P.roof, false);
     bBox(b.w+1.3, 0.55, 0.3, b.x, fy+H+0.55, b.z+(b.d+1.0)/2, P.roof, false);

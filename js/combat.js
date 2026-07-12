@@ -30,7 +30,25 @@ function terrainRayT(ox,oy,oz, dx,dy,dz, maxT){
   }
   return -1;
 }
-// castShot: returns nearest hit {t, x,y,z, kind:'terrain'|'wall'|'bot'|'player', bot}
+function rayVsCylXZ(ox, oz, dx, dz, cx, cz, r, maxT){
+  const a = dx*dx + dz*dz;
+  if(a < 1e-9) return -1;
+  const fx = ox - cx, fz = oz - cz;
+  const b = 2*(fx*dx + fz*dz), c = fx*fx + fz*fz - r*r;
+  const disc = b*b - 4*a*c;
+  if(disc < 0) return -1;
+  const t = (-b - Math.sqrt(disc)) / (2*a);
+  return (t > 0 && t < maxT) ? t : -1;
+}
+function raySphere(ox,oy,oz, dx,dy,dz, cx,cy,cz, r, maxT){
+  const fx = ox-cx, fy = oy-cy, fz = oz-cz;
+  const b = 2*(fx*dx + fy*dy + fz*dz), c = fx*fx + fy*fy + fz*fz - r*r;
+  const disc = b*b - 4*c;
+  if(disc < 0) return -1;
+  const t = (-b - Math.sqrt(disc)) / 2;
+  return (t > 0 && t < maxT) ? t : -1;
+}
+// castShot: returns nearest hit {t, x,y,z, kind:'terrain'|'wall'|'tree'|'rock'|'bot'|'player', bot}
 function castShot(o, d, maxT, ignoreActor){
   let bestT = maxT, kind = 'none', hitBot = null;
   const tt = terrainRayT(o.x,o.y,o.z, d.x,d.y,d.z, maxT);
@@ -38,6 +56,13 @@ function castShot(o, d, maxT, ignoreActor){
   for(const c of colliders){
     const t = rayVsAABB(o.x,o.y,o.z, d.x,d.y,d.z, c, bestT);
     if(t >= 0 && t < bestT){ bestT = t; kind = 'wall'; }
+  }
+  for(const c of solidCyls){
+    const t = rayVsCylXZ(o.x, o.z, d.x, d.z, c.x, c.z, c.r, bestT);
+    if(t >= 0){
+      const y = o.y + d.y * t;
+      if(y > c.y0 && y < c.y1){ bestT = t; kind = c.kind; hitBot = null; }
+    }
   }
   for(const bot of bots){
     if(!bot.alive || bot === ignoreActor) continue;
@@ -64,20 +89,83 @@ function hasLOS(ax,ay,az, bx,by,bz){
     const t = rayVsAABB(ax,ay,az, d.x,d.y,d.z, c, dist-0.4);
     if(t >= 0) return false;
   }
+  for(const c of solidCyls){
+    const t = rayVsCylXZ(ax, az, d.x, d.z, c.x, c.z, c.r, dist-0.5);
+    if(t >= 0){
+      const y = ay + d.y*t;
+      if(y > c.y0 && y < c.y1) return false;
+    }
+  }
+  for(const f of foliageBalls){
+    if(raySphere(ax,ay,az, d.x,d.y,d.z, f.x,f.y,f.z, f.r, dist-0.5) >= 0) return false;
+  }
   return true;
 }
 
 // ---------------- weapons ----------------
 const WEAPONS = {
-  rifle:   { name:'RIFLE',   dmg:22, botDmg:11, rpm:520, spread:0.014, pellets:1, mag:30, reload:1.8, auto:true,  kick:0.045, tracer:0xffd27a },
-  shotgun: { name:'SHOTGUN', dmg:11, botDmg:8,  rpm:75,  spread:0.052, pellets:8, mag:6,  reload:2.4, auto:false, kick:0.16,  tracer:0xffb35c },
-  sniper:  { name:'SNIPER',  dmg:85, botDmg:38, rpm:42,  spread:0.02,  pellets:1, mag:5,  reload:2.7, auto:false, kick:0.24,  tracer:0xaad4ff },
+  rifle:   { name:'RIFLE',   dmg:22, botDmg:13, rpm:520, spread:0.014, pellets:1, mag:30, reload:1.8, auto:true,  kick:0.045, tracer:0xffd27a, range:280 },
+  shotgun: { name:'SHOTGUN', dmg:11, botDmg:10, rpm:75,  spread:0.052, pellets:8, mag:6,  reload:2.4, auto:false, kick:0.16,  tracer:0xffb35c, range:70 },
+  sniper:  { name:'SNIPER',  dmg:85, botDmg:44, rpm:42,  spread:0.02,  pellets:1, mag:5,  reload:2.7, auto:false, kick:0.24,  tracer:0xaad4ff, range:520 },
 };
+
+// ---------------- gun viewmodels ----------------
+const GUNMETAL = 0x26282c, WOOD = 0x4e3520, SCOPE = 0x1a1c20;
+function gunPart(g, geo, hex, x,y,z, rx,ry,rz){
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color:hex, flatShading:true, roughness:0.85, metalness:0.15 }));
+  m.position.set(x,y,z);
+  if(rx||ry||rz) m.rotation.set(rx||0, ry||0, rz||0);
+  g.add(m); return m;
+}
+function buildGunModel(type, viewmodel){
+  const g = new THREE.Group();
+  if(type === 'rifle'){
+    gunPart(g, new THREE.BoxGeometry(0.07,0.09,0.52), GUNMETAL, 0,0,-0.20);            // receiver
+    gunPart(g, new THREE.CylinderGeometry(0.020,0.020,0.42,7), GUNMETAL, 0,0.012,-0.62, Math.PI/2,0,0); // barrel
+    gunPart(g, new THREE.BoxGeometry(0.05,0.05,0.09), GUNMETAL, 0,0.012,-0.85);        // muzzle
+    gunPart(g, new THREE.BoxGeometry(0.065,0.16,0.07), GUNMETAL, 0,-0.11,-0.16, 0.28); // magazine
+    gunPart(g, new THREE.BoxGeometry(0.055,0.11,0.05), WOOD, 0,-0.09,0.05, 0.15);      // grip
+    gunPart(g, new THREE.BoxGeometry(0.06,0.10,0.26), WOOD, 0,-0.02,0.20);             // stock
+    gunPart(g, new THREE.BoxGeometry(0.05,0.045,0.20), WOOD, 0,-0.005,-0.48);          // handguard
+    gunPart(g, new THREE.BoxGeometry(0.014,0.045,0.02), GUNMETAL, 0,0.065,-0.42);      // front sight
+    gunPart(g, new THREE.BoxGeometry(0.04,0.035,0.05), GUNMETAL, 0,0.06,-0.02);        // rear sight
+    g.userData.muzzle = new THREE.Vector3(0, 0.012, -0.90);
+  } else if(type === 'shotgun'){
+    gunPart(g, new THREE.BoxGeometry(0.075,0.095,0.42), GUNMETAL, 0,0,-0.12);
+    gunPart(g, new THREE.CylinderGeometry(0.030,0.030,0.55,8), GUNMETAL, 0,0.02,-0.58, Math.PI/2,0,0);
+    gunPart(g, new THREE.CylinderGeometry(0.022,0.022,0.50,7), GUNMETAL, 0,-0.028,-0.55, Math.PI/2,0,0); // tube
+    gunPart(g, new THREE.BoxGeometry(0.07,0.06,0.16), WOOD, 0,-0.028,-0.44);           // pump
+    gunPart(g, new THREE.BoxGeometry(0.06,0.11,0.30), WOOD, 0,-0.03,0.20, 0.1);        // stock
+    gunPart(g, new THREE.BoxGeometry(0.014,0.04,0.02), GUNMETAL, 0,0.075,-0.80);
+    g.userData.muzzle = new THREE.Vector3(0, 0.02, -0.88);
+  } else {
+    gunPart(g, new THREE.BoxGeometry(0.07,0.09,0.55), GUNMETAL, 0,0,-0.15);
+    gunPart(g, new THREE.CylinderGeometry(0.019,0.019,0.72,7), GUNMETAL, 0,0.012,-0.78, Math.PI/2,0,0);
+    gunPart(g, new THREE.BoxGeometry(0.05,0.05,0.10), GUNMETAL, 0,0.012,-1.10);        // brake
+    gunPart(g, new THREE.CylinderGeometry(0.035,0.035,0.20,8), SCOPE, 0,0.085,-0.10, Math.PI/2,0,0); // scope
+    gunPart(g, new THREE.CylinderGeometry(0.042,0.042,0.03,8), SCOPE, 0,0.085,-0.22, Math.PI/2,0,0);
+    gunPart(g, new THREE.BoxGeometry(0.065,0.13,0.07), GUNMETAL, 0,-0.10,-0.05, 0.25); // mag
+    gunPart(g, new THREE.BoxGeometry(0.06,0.11,0.30), WOOD, 0,-0.025,0.22, 0.08);      // stock
+    g.userData.muzzle = new THREE.Vector3(0, 0.012, -1.16);
+  }
+  if(viewmodel) g.traverse(o => { o.frustumCulled = false; });
+  return g;
+}
+function makeMedkitModel(){
+  const g = new THREE.Group();
+  const caseM = new THREE.MeshStandardMaterial({ color:0xf2f2ee, flatShading:true, roughness:0.8 });
+  const redM  = new THREE.MeshStandardMaterial({ color:0xd23026, flatShading:true, roughness:0.8 });
+  const box = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.30, 0.34), caseM); g.add(box);
+  const crossV = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.22, 0.36), redM); g.add(crossV);
+  const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.08, 0.36), redM); g.add(crossH);
+  const handle = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.08), redM);
+  handle.position.y = 0.19; g.add(handle);
+  return g;
+}
 
 // ---------------- loot crates ----------------
 const crates = [];
 const CRATE_LOOT = ['shotgun','medkit','sniper','rifle','medkit','shotgun','medkit','sniper','rifle','medkit'];
-const ITEM_COLOR = { rifle:0xf2a900, shotgun:0xd8552a, sniper:0x5ca8e8, medkit:0xe8e8e8 };
 buildings.forEach((b, i) => {
   const loot = CRATE_LOOT[i % CRATE_LOOT.length];
   const g = new THREE.Group();
@@ -90,15 +178,14 @@ buildings.forEach((b, i) => {
     const strip = new THREE.Mesh(new THREE.BoxGeometry(ex?0.1:1.0, 0.84, ez?0.1:1.0), dark);
     strip.position.set(ex, 0.4, ez); g.add(strip);
   }
-  const icon = new THREE.Mesh(new THREE.BoxGeometry(0.3,0.3,0.3),
-    new THREE.MeshBasicMaterial({ color: ITEM_COLOR[loot] }));
-  icon.position.y = 1.35; g.add(icon);
+  let icon;
   if(loot === 'medkit'){
-    const cross1 = new THREE.Mesh(new THREE.BoxGeometry(0.34,0.1,0.12), new THREE.MeshBasicMaterial({color:0xd83030}));
-    cross1.position.y = 1.35; g.add(cross1);
-    const cross2 = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.34,0.12), new THREE.MeshBasicMaterial({color:0xd83030}));
-    cross2.position.y = 1.35; g.add(cross2);
+    icon = makeMedkitModel();
+  } else {
+    icon = buildGunModel(loot, false);        // the loot IS a miniature of the weapon
+    icon.scale.setScalar(0.85);
   }
+  icon.position.y = 1.35; g.add(icon);
   const cx = b.x + randRange(-b.w*0.18, b.w*0.18), cz = b.z + randRange(-b.d*0.18, b.d*0.18);
   g.position.set(cx, groundAt(cx,cz), cz);
   g.rotation.y = randRange(0, Math.PI);
