@@ -186,9 +186,12 @@ function updateAmmoHUD(){
   document.getElementById('slots').innerHTML = slots;
 }
 function updateMedkitHUD(){
-  const m = document.getElementById('medkits');
-  m.textContent = '\u271A ' + player.medkits;
-  m.className = player.medkits > 0 ? '' : 'empty';
+  const card = document.getElementById('medkitcard');
+  card.querySelector('.count').textContent = '\u00D7' + player.medkits;
+  card.className = 'itemcard' + (player.medkits > 0 ? '' : ' empty');
+}
+function updateKillsHUD(){
+  document.getElementById('kills').innerHTML = player.kills + '<small>KILLS</small>';
 }
 function updateAliveHUD(){
   const n = aliveBotCount() + (player.alive ? 1 : 0);
@@ -232,7 +235,7 @@ function startMatch(){
   player.pos.set(sx, groundAt(sx,sz), sz);
   player.yaw = Math.atan2(sx, sz) + Math.PI;   // face map centre... roughly
   player.vel.set(0,0,0);
-  updateHealthHUD(); updateAmmoHUD(); updateAliveHUD(); updateMedkitHUD();
+  updateHealthHUD(); updateAmmoHUD(); updateAliveHUD(); updateMedkitHUD(); updateKillsHUD();
 }
 window.__start = startMatch;   // dev hook: start match without pointer lock
 window.__dev = {               // dev/test hooks
@@ -331,5 +334,5 @@ function animate(){
   if(matchStarted) drawMinimap();
   renderer.render(scene, camera);
 }
-updateHealthHUD(); updateAmmoHUD(); updateAliveHUD(); updateMedkitHUD();
+updateHealthHUD(); updateAmmoHUD(); updateAliveHUD(); updateMedkitHUD(); updateKillsHUD();
 animate();

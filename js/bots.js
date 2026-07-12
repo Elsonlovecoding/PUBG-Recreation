@@ -9,7 +9,8 @@ const BOT_NAMES = ['ShroudFan42','xX_Sn1per_Xx','PanBandit','ChickenChaser','NoS
 const BOT_COUNT = 23;
 const SHIRT_COLORS = [0x5a7d9c, 0x9c5a5a, 0x6f8f5a, 0x8f7a4a, 0x7a5a8f, 0x4a8f8a, 0xa06a3a, 0x616a72];
 const PANTS_COLORS = [0x3a4148, 0x4a4238, 0x39424a, 0x50483c];
-const SKIN = 0xd9a066;
+const SKIN_TONES = [0xd9a066, 0xc68a5a, 0x9c6b45, 0xe6b088];
+const HAIR_COLORS = [0x2b2118, 0x4a3220, 0x6e5a3a, 0x1c1c1e];
 const bots = [];
 const waypoints = [];
 doorSpots.forEach(d => waypoints.push({x:d.x, z:d.z}));
@@ -20,7 +21,7 @@ for(let i=0;i<44;i++){
   if(!insideBuilding(x,z,2) && heightAt(x,z) > 0) waypoints.push({x,z});
 }
 
-function buildBotMesh(shirtHex, pantsHex){
+function buildBotMesh(i, weapon){
   const g = new THREE.Group();
   const mats = [];
   function M(hex){ const m = new THREE.MeshStandardMaterial({ color:hex, flatShading:true, roughness:1 }); mats.push(m); return m; }
@@ -29,33 +30,67 @@ function buildBotMesh(shirtHex, pantsHex){
     mesh.position.set(x,y,z); mesh.castShadow = true;
     (parent||g).add(mesh); return mesh;
   }
-  const shirt = M(shirtHex), pants = M(pantsHex), skin = M(SKIN), dark = M(0x26282c);
-  part(new THREE.BoxGeometry(0.62,0.72,0.34), shirt, 0,1.08,0);                 // torso
-  const headM = part(new THREE.BoxGeometry(0.36,0.36,0.36), skin, 0,1.66,0);    // head
-  part(new THREE.BoxGeometry(0.40,0.12,0.40), M(PANTS_COLORS[Math.floor(Math.random()*4)]), 0,0.22,0, headM); // cap
+  const shirt = M(SHIRT_COLORS[i % SHIRT_COLORS.length]);
+  const pants = M(PANTS_COLORS[i % PANTS_COLORS.length]);
+  const skin  = M(SKIN_TONES[i % SKIN_TONES.length]);
+  const dark  = M(0x26282c);
+
+  // torso, belt, tactical vest, backpack
+  part(new THREE.BoxGeometry(0.62,0.72,0.34), shirt, 0,1.08,0);
+  part(new THREE.BoxGeometry(0.64,0.09,0.36), dark, 0,0.76,0);
+  if(i % 3 !== 1) part(new THREE.BoxGeometry(0.68,0.46,0.42), M(0x3a4034), 0,1.16,0);
+  if(i % 2 === 0) part(new THREE.BoxGeometry(0.46,0.52,0.20), M(0x6b5a3a), 0,1.16,-0.29);
+
+  // head with a face + headgear variants
+  const headM = part(new THREE.BoxGeometry(0.36,0.36,0.36), skin, 0,1.66,0);
+  const eyeM = M(0x1e1a16);
+  part(new THREE.BoxGeometry(0.055,0.05,0.02), eyeM, -0.085, 0.035, 0.18, headM);
+  part(new THREE.BoxGeometry(0.055,0.05,0.02), eyeM,  0.085, 0.035, 0.18, headM);
+  const hg = i % 4;
+  if(hg === 0){
+    part(new THREE.BoxGeometry(0.42,0.24,0.42), M(0x2e3438), 0,0.15,0, headM);            // lvl-3 helmet
+  } else if(hg === 1){
+    part(new THREE.BoxGeometry(0.42,0.20,0.42), M(0xb8bcbe), 0,0.17,0, headM);            // lvl-1 helmet
+  } else if(hg === 2){
+    part(new THREE.BoxGeometry(0.40,0.12,0.40), pants, 0,0.22,0, headM);                  // cap
+    part(new THREE.BoxGeometry(0.38,0.05,0.16), pants, 0,0.17,0.26, headM);               // brim
+  } else {
+    part(new THREE.BoxGeometry(0.39,0.12,0.39), M(HAIR_COLORS[i % HAIR_COLORS.length]), 0,0.21,0, headM);
+  }
+
+  // arms: shirt sleeve + bare forearm
   const armL = new THREE.Object3D(); armL.position.set(-0.40,1.38,0); g.add(armL);
   const armR = new THREE.Object3D(); armR.position.set( 0.40,1.38,0); g.add(armR);
-  part(new THREE.BoxGeometry(0.17,0.62,0.17), shirt, 0,-0.26,0, armL);
-  part(new THREE.BoxGeometry(0.17,0.62,0.17), shirt, 0,-0.26,0, armR);
-  part(new THREE.BoxGeometry(0.13,0.14,0.13), skin, 0,-0.60,0, armL);
-  part(new THREE.BoxGeometry(0.13,0.14,0.13), skin, 0,-0.60,0, armR);
+  for(const a of [armL, armR]){
+    part(new THREE.BoxGeometry(0.18,0.36,0.18), shirt, 0,-0.13,0, a);
+    part(new THREE.BoxGeometry(0.15,0.32,0.15), skin, 0,-0.44,0, a);
+  }
+  // legs: pants + boots
   const legL = new THREE.Object3D(); legL.position.set(-0.16,0.74,0); g.add(legL);
   const legR = new THREE.Object3D(); legR.position.set( 0.16,0.74,0); g.add(legR);
-  part(new THREE.BoxGeometry(0.20,0.74,0.20), pants, 0,-0.37,0, legL);
-  part(new THREE.BoxGeometry(0.20,0.74,0.20), pants, 0,-0.37,0, legR);
-  part(new THREE.BoxGeometry(0.09,0.11,0.62), dark, 0,-0.55,-0.28, armR);       // held gun
+  for(const l of [legL, legR]){
+    part(new THREE.BoxGeometry(0.20,0.60,0.20), pants, 0,-0.30,0, l);
+    part(new THREE.BoxGeometry(0.22,0.16,0.24), M(0x2a2622), 0,-0.66,0.01, l);
+  }
+  // they visibly carry their actual weapon
+  const gun = buildGunModel(weapon, false);
+  gun.rotation.y = Math.PI;
+  gun.position.set(-0.02,-0.52,0.22);
+  gun.traverse(o => { if(o.isMesh){ o.castShadow = true; mats.push(o.material); } });
+  armR.add(gun);
+
+  g.scale.setScalar(randRange(0.95, 1.06));
   return { g, armL, armR, legL, legR, mats };
 }
 
 for(let i=0;i<BOT_COUNT;i++){
-  const parts = buildBotMesh(
-    SHIRT_COLORS[i % SHIRT_COLORS.length],
-    PANTS_COLORS[i % PANTS_COLORS.length]);
+  const weapon = Math.random() < 0.72 ? 'rifle' : (Math.random() < 0.5 ? 'shotgun' : 'sniper');
+  const parts = buildBotMesh(i, weapon);
   const bot = {
     group: parts.g, armL: parts.armL, armR: parts.armR, legL: parts.legL, legR: parts.legR,
     mats: parts.mats,
     name: BOT_NAMES[i], hp: 100, alive: true,
-    weapon: Math.random() < 0.72 ? 'rifle' : (Math.random() < 0.5 ? 'shotgun' : 'sniper'),
+    weapon,
     state: 'wander', dest: null, idle: randRange(0,2),
     target: null, thinkT: Math.random()*0.3, burst: 0, burstPause: randRange(0.5,1.5),
     shootT: 0, coverT: 0, walkPhase: Math.random()*6,
@@ -272,7 +307,7 @@ function damageBot(bot, dmg, killerName, attacker){
     const a = randRange(0, Math.PI*2);
     bot.fallAxis = { x: Math.cos(a)*0.9, z: Math.sin(a)*0.9,
       f1: randRange(-1.5,1.5), f2: randRange(-1.5,1.5), f3: randRange(-0.8,0.8), f4: randRange(-0.8,0.8) };
-    if(killerName === 'You') player.kills++;
+    if(killerName === 'You'){ player.kills++; updateKillsHUD(); }
     addKillFeed(killerName, bot.name);
     updateAliveHUD();
     checkVictory();
