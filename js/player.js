@@ -1,10 +1,10 @@
 'use strict';
-// PUBG Recreation — player state, gun viewmodels, shooting, input, movement
+// PUBG Recreation — player state, shooting, input, movement
 
 // ---------------- player ----------------
 const player = {
   pos: new THREE.Vector3(), vel: new THREE.Vector3(),
-  yaw: 0, pitch: 0, hp: 100, alive: true, grounded: false,
+  yaw: 0, pitch: 0, hp: 100, armor: 0, alive: true, grounded: false,
   bobPhase: 0, bobAmt: 0, kills: 0,
   weapon: 'rifle',
   owned: {
@@ -14,11 +14,16 @@ const player = {
   },
   cooldown: 0, reloading: 0, firing: false, fireLatch: false,
   aiming: false, aimBlend: 0,
-  medkits: 1, healing: 0,
-  holding: 'gun',            // 'gun' | 'medkit'
+  items: { medkit: 1, frag: 1, smoke: 1 },
+  healing: 0,
+  holding: 'gun',            // 'gun' | 'medkit' | 'frag' | 'smoke'
   charging: false,           // sniper: fire on release
+  driving: null,             // vehicle ref while behind the wheel
+  dropState: 'none',         // 'none' | 'plane' | 'free' | 'chute'
 };
-const HEAL_TIME = 4.0, HEAL_AMOUNT = 75, MEDKIT_CAP = 4;
+const HEAL_TIME = 4.0, HEAL_AMOUNT = 75;
+const ITEM_CAPS = { medkit: 4, frag: 3, smoke: 3 };
+
 const rig = new THREE.Object3D();      // yaw
 const head = new THREE.Object3D();     // pitch + eye height + bob
 head.position.y = 1.62;
@@ -63,33 +68,10 @@ const GUN_ADS  = new THREE.Vector3(0, -0.175, -0.36);
 gunRoot.position.copy(GUN_REST);
 gunRoot.scale.setScalar(0.62);
 gunRoot.rotation.y = 0.05;
-const gunModels = { rifle: buildGunModel('rifle'), shotgun: buildGunModel('shotgun'), sniper: buildGunModel('sniper') };
+const gunModels = { rifle: buildGunModel('rifle', true), shotgun: buildGunModel('shotgun', true), sniper: buildGunModel('sniper', true) };
 let currentGunMesh = gunModels.rifle;
 gunRoot.add(currentGunMesh);
 let recoil = 0, recoilRot = 0;
-
-const medkitVM = makeMedkitModel();
-medkitVM.scale.setScalar(1.25);
-medkitVM.position.set(-0.02, 0.02, 0.05);
-medkitVM.rotation.set(0.18, -0.45, 0.05);
-function equipMedkit(){
-  if(player.holding === 'medkit'){ holsterMedkit(); return; }   // press 4 again to put it away
-  if(player.medkits <= 0){ showToast('NO MEDKITS'); return; }
-  player.holding = 'medkit';
-  player.firing = false; player.charging = false; player.aiming = false;
-  gunRoot.remove(currentGunMesh);
-  gunRoot.add(medkitVM);
-  showToast('CLICK TO USE MEDKIT');
-  updateAmmoHUD();
-}
-function holsterMedkit(){
-  if(player.holding !== 'medkit') return;
-  cancelHeal();
-  player.holding = 'gun';
-  gunRoot.remove(medkitVM);
-  gunRoot.add(currentGunMesh);
-  updateAmmoHUD();
-}
 
 const scopeEl = document.getElementById('scope');
 const crosshairEl = document.getElementById('crosshair');
@@ -112,7 +94,7 @@ let flashTime = 0;
 
 function setWeapon(type){
   if(!player.owned[type]) return;
-  if(player.holding === 'medkit') holsterMedkit();
+  if(player.holding !== 'gun') holsterItem();
   player.weapon = type;
   gunRoot.remove(currentGunMesh);
   currentGunMesh = gunModels[type];
@@ -136,6 +118,7 @@ function playerShoot(){
   _muzzleWorld.copy(currentGunMesh.userData.muzzle);
   currentGunMesh.localToWorld(_muzzleWorld);
   const spread = player.aiming ? W.spread * (player.weapon === 'sniper' ? 0.05 : 0.55) : W.spread;
+  matchStats.fired += W.pellets;
   for(let i=0;i<W.pellets;i++){
     const d = _fwd.clone();
     d.x += randRange(-spread, spread);
@@ -145,7 +128,13 @@ function playerShoot(){
     const hit = castShot(origin, d, W.range, 'player');
     if(hit.kind !== 'none') impactFX(hit);
     spawnTracer(_muzzleWorld.x, _muzzleWorld.y, _muzzleWorld.z, hit.x, hit.y, hit.z, W.tracer);
-    if(hit.kind === 'bot') damageBot(hit.bot, W.dmg, 'You', 'player');
+    if(hit.kind === 'bot'){
+      matchStats.hit++; matchStats.damage += W.dmg;
+      damageBot(hit.bot, W.dmg, 'You', 'player');
+    } else if(hit.kind === 'vehicle' && hit.vehicle){
+      matchStats.hit++;
+      damageVehicle(hit.vehicle, W.dmg * 0.8, 'You');
+    }
   }
   recoil = Math.min(recoil + W.kick, 0.22);
   recoilRot = Math.min(recoilRot + W.kick*1.6, 0.35);
@@ -162,14 +151,17 @@ function playerShoot(){
       _fwd.x*randRange(2,5)+randRange(-1,1), _fwd.y*3+randRange(0.5,1.5), _fwd.z*randRange(2,5)+randRange(-1,1),
       0xffcf7a, randRange(0.02,0.05), randRange(0.08,0.16), -6, 4);
   }
+  SFX.shot(player.weapon, 0, 0);
+  reportGunshot(player.pos.x, player.pos.z, 'player');
   updateAmmoHUD();
 }
 function startHeal(){
   if(!player.alive || player.healing > 0 || player.reloading > 0) return;
-  if(player.medkits <= 0){ showToast('NO MEDKITS'); return; }
+  if(player.items.medkit <= 0){ showToast('NO MEDKITS'); return; }
   if(player.hp >= 100){ showToast('HEALTH FULL'); return; }
   player.healing = HEAL_TIME;
   player.firing = false;
+  SFX.healStart();
   document.getElementById('healfill').style.width = '0%';
   document.getElementById('healbar').style.display = 'block';
 }
@@ -181,8 +173,10 @@ function cancelHeal(){
 function startReload(){
   const ammo = player.owned[player.weapon];
   const W = WEAPONS[player.weapon];
-  if(player.reloading > 0 || player.healing > 0 || player.holding === 'medkit' || ammo.mag >= W.mag || ammo.reserve <= 0) return;
+  if(player.reloading > 0 || player.healing > 0 || player.holding !== 'gun' || player.driving ||
+     ammo.mag >= W.mag || ammo.reserve <= 0) return;
   player.reloading = W.reload;
+  SFX.reload();
   document.getElementById('reloadmsg').textContent = 'RELOADING…';
 }
 function finishReload(){
@@ -200,17 +194,23 @@ let pointerLocked = false;
 document.addEventListener('keydown', e => {
   keys[e.code] = true;
   if(!gameState.playing) return;
+  if(e.code === 'KeyE' && player.alive && player.dropState === 'none' && !player.driving) toggleInventory();
+  if(e.code === 'KeyF'){
+    if(player.dropState === 'plane') jumpFromPlane();
+    else if(player.alive && player.dropState === 'none' && !inventoryOpen) tryVehicleToggle();
+  }
+  if(inventoryOpen || player.driving || player.dropState !== 'none') return;
   if(e.code === 'KeyR') startReload();
-  if(e.code === 'Digit4' || e.code === 'KeyH') equipMedkit();
   if(e.code === 'Digit1' && player.owned.rifle) setWeapon('rifle');
   if(e.code === 'Digit2' && player.owned.shotgun) setWeapon('shotgun');
   if(e.code === 'Digit3' && player.owned.sniper) setWeapon('sniper');
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 document.addEventListener('mousedown', e => {
-  if(!gameState.playing || !player.alive) return;
+  if(!gameState.playing || !player.alive || inventoryOpen || player.driving || player.dropState !== 'none') return;
   if(e.button === 0){
     if(player.holding === 'medkit'){ startHeal(); return; }
+    if(player.holding === 'frag' || player.holding === 'smoke'){ throwHeld(); return; }
     if(player.healing > 0) cancelHeal();
     if(player.weapon === 'sniper'){ player.charging = true; return; }   // fires on release
     player.firing = true; player.fireLatch = false;
@@ -222,8 +222,9 @@ document.addEventListener('mouseup', e => {
     player.firing = false;
     if(player.charging){
       player.charging = false;
-      if(gameState.playing && player.alive && player.holding === 'gun' && player.weapon === 'sniper'
-         && player.cooldown <= 0 && player.reloading <= 0 && player.healing <= 0) playerShoot();
+      if(gameState.playing && player.alive && player.holding === 'gun' && player.weapon === 'sniper' &&
+         !player.driving && player.dropState === 'none' &&
+         player.cooldown <= 0 && player.reloading <= 0 && player.healing <= 0) playerShoot();
     }
   }
   else if(e.button === 2) player.aiming = false;
@@ -239,7 +240,7 @@ document.addEventListener('mousemove', e => {
 // ---------------- player update ----------------
 let footstepTimer = 0;
 function updatePlayer(dt){
-  if(!player.alive) return;
+  if(!player.alive || player.driving || player.dropState !== 'none') return;
   rig.rotation.y = player.yaw;
   camera.rotation.x = player.pitch;
 
@@ -277,7 +278,7 @@ function updatePlayer(dt){
 
   rig.position.copy(player.pos);
 
-  // camera bob + sprint fov + footstep dust
+  // camera bob + aim blend + fov + footsteps
   const horizSpeed = Math.hypot(player.vel.x, player.vel.z);
   if(player.grounded && horizSpeed > 0.6){
     player.bobPhase += dt * (3.6 + horizSpeed * 0.9);
@@ -288,15 +289,15 @@ function updatePlayer(dt){
   player.aimBlend = lerp(player.aimBlend, player.aiming ? 1 : 0, Math.min(1, dt*10));
   const ab = player.aimBlend;
   const bobA = player.bobAmt * (1 - ab*0.7);              // steadier while aiming
+  const steady = player.charging ? 0.3 : 1;               // held breath before the shot
   head.position.y = 1.62 + Math.sin(player.bobPhase*2) * 0.038 * bobA;
   head.position.x = Math.sin(player.bobPhase) * 0.022 * bobA;
-  const steady = player.charging ? 0.3 : 1;                  // held breath before the shot
   head.rotation.y = Math.sin(performance.now()*0.0009) * 0.0014 * ab * steady;
   camera.rotation.z = Math.sin(player.bobPhase) * 0.006 * bobA;
   camera.rotation.x += Math.sin(performance.now()*0.0013) * 0.0012 * ab * steady;   // breathing sway
   const scoped = player.aiming && player.weapon === 'sniper' && player.holding === 'gun';
   let targetFov = 75;
-  if(player.aiming) targetFov = scoped ? 18 : 62;
+  if(player.aiming && player.holding === 'gun') targetFov = scoped ? 18 : 62;
   else if(sprint && horizSpeed > 6.5) targetFov = 82;
   if(Math.abs(camera.fov - targetFov) > 0.05){
     camera.fov = lerp(camera.fov, targetFov, Math.min(1, dt*9));
@@ -304,9 +305,10 @@ function updatePlayer(dt){
   }
   setScopeUI(scoped && camera.fov < 45);
   footstepTimer -= dt;
-  if(player.grounded && horizSpeed > 6.5 && footstepTimer <= 0){
-    dustPuff(player.pos.x - player.vel.x*0.06, g, player.pos.z - player.vel.z*0.06);
-    footstepTimer = 0.26;
+  if(player.grounded && horizSpeed > 2 && footstepTimer <= 0){
+    SFX.footstep(horizSpeed > 6.5);
+    if(horizSpeed > 6.5) dustPuff(player.pos.x - player.vel.x*0.06, g, player.pos.z - player.vel.z*0.06);
+    footstepTimer = horizSpeed > 6.5 ? 0.26 : 0.42;
   }
 
   // medkit cast
@@ -315,12 +317,13 @@ function updatePlayer(dt){
     document.getElementById('healfill').style.width = ((1 - Math.max(player.healing,0)/HEAL_TIME) * 100) + '%';
     if(player.healing <= 0){
       player.healing = 0;
-      player.medkits--;
+      player.items.medkit--;
       player.hp = Math.min(100, player.hp + HEAL_AMOUNT);
       document.getElementById('healbar').style.display = 'none';
-      updateHealthHUD(); updateMedkitHUD();
+      updateHealthHUD(); updateItemsHUD();
+      SFX.heal();
       showToast('+' + HEAL_AMOUNT + ' HP');
-      if(player.medkits <= 0) holsterMedkit(); else updateAmmoHUD();
+      if(player.items.medkit <= 0) holsterItem(); else updateAmmoHUD();
     }
   }
 
@@ -348,26 +351,4 @@ function updatePlayer(dt){
     const dx = c.group.position.x - player.pos.x, dz = c.group.position.z - player.pos.z;
     if(dx*dx + dz*dz < 2.6) tryPickup(c);
   }
-  // zone damage handled in updateZone
-}
-function tryPickup(c){
-  if(c.loot === 'medkit'){
-    if(player.medkits >= MEDKIT_CAP) return;          // leave the crate for later
-    player.medkits++;
-    showToast('PICKED UP MEDKIT (' + player.medkits + '/' + MEDKIT_CAP + ')');
-    updateMedkitHUD(); updateAmmoHUD();
-  } else {
-    const W = WEAPONS[c.loot];
-    if(player.owned[c.loot]){
-      player.owned[c.loot].reserve += W.mag * 2;
-      showToast('PICKED UP ' + W.name + ' AMMO');
-    } else {
-      player.owned[c.loot] = { mag: W.mag, reserve: W.mag * 3 };
-      setWeapon(c.loot);
-      showToast('PICKED UP ' + W.name);
-    }
-    updateAmmoHUD();
-  }
-  c.taken = true;
-  scene.remove(c.group);
 }

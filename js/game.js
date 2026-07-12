@@ -1,14 +1,14 @@
 'use strict';
-// PUBG Recreation — zone, minimap, HUD, match flow, main loop
+// PUBG Recreation — zone, minimap, HUD, career stats, match flow, main loop
 
 // ---------------- shrinking zone ----------------
-const zone = { cx:0, cz:0, r:430, tcx:0, tcz:0, tr:430, scx:0, scz:0, sr:430, phase:0, state:'wait', t:25 };
+const zone = { cx:0, cz:0, r:480, tcx:0, tcz:0, tr:480, scx:0, scz:0, sr:480, phase:0, state:'wait', t:25 };
 const ZONE_PHASES = [
-  { wait:25, shrink:26, mul:0.58 },
-  { wait:17, shrink:20, mul:0.56 },
-  { wait:14, shrink:16, mul:0.54 },
-  { wait:11, shrink:13, mul:0.50 },
-  { wait:9,  shrink:11, mul:0.45 },
+  { wait:30, shrink:28, mul:0.58 },
+  { wait:20, shrink:22, mul:0.56 },
+  { wait:16, shrink:17, mul:0.54 },
+  { wait:12, shrink:14, mul:0.50 },
+  { wait:10, shrink:11, mul:0.45 },
   { wait:8,  shrink:9,  mul:0.05 },
 ];
 const zoneWallMat = new THREE.ShaderMaterial({
@@ -16,14 +16,14 @@ const zoneWallMat = new THREE.ShaderMaterial({
   uniforms: { color:{ value:new THREE.Color(0x55b0ff) }, time:{ value:0 } },
   vertexShader: [
     'varying vec2 vUv; varying float vH;',
-    'void main(){ vUv = uv; vH = position.y + 0.5;',   // 0 bottom -> 1 top of unit cylinder
+    'void main(){ vUv = uv; vH = position.y + 0.5;',
     '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }'
   ].join('\n'),
   fragmentShader: [
     'uniform vec3 color; uniform float time;',
     'varying vec2 vUv; varying float vH;',
     'void main(){',
-    '  float ground = 1.0 - vH;',                          // dense at the base, fading up
+    '  float ground = 1.0 - vH;',
     '  float stripes = smoothstep(0.85, 1.0, fract(vUv.x*220.0 + time*0.03)) * 0.5;',
     '  float pulse = 0.9 + 0.1*sin(time*2.2);',
     '  float a = (0.06 + 0.34*ground*ground + stripes*(0.25+0.75*ground)) * pulse;',
@@ -32,8 +32,8 @@ const zoneWallMat = new THREE.ShaderMaterial({
   ].join('\n')
 });
 const zoneWall = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 96, 1, true), zoneWallMat);
-zoneWall.scale.set(zone.r, 320, zone.r);
-zoneWall.position.set(0, 150, 0);
+zoneWall.scale.set(zone.r, 340, zone.r);
+zoneWall.position.set(0, 160, 0);
 zoneWall.renderOrder = 5;
 scene.add(zoneWall);
 let zoneTick = 0;
@@ -45,10 +45,11 @@ function updateZone(dt){
       zone.scx = zone.cx; zone.scz = zone.cz; zone.sr = zone.r;
       const nr = Math.max(12, zone.r * P.mul);
       const a = randRange(0, Math.PI*2), off = randRange(0, (zone.r - nr) * 0.8);
-      zone.tcx = clamp(zone.cx + Math.cos(a)*off, -320, 320);
-      zone.tcz = clamp(zone.cz + Math.sin(a)*off, -320, 320);
+      zone.tcx = clamp(zone.cx + Math.cos(a)*off, -360, 360);
+      zone.tcz = clamp(zone.cz + Math.sin(a)*off, -360, 360);
       zone.tr = nr;
       zone.state = 'shrink'; zone.t = P.shrink;
+      SFX.zoneSiren();
     }
   } else {
     const f = 1 - clamp(zone.t / P.shrink, 0, 1);
@@ -60,8 +61,8 @@ function updateZone(dt){
       zone.state = 'wait'; zone.t = ZONE_PHASES[Math.min(zone.phase, ZONE_PHASES.length-1)].wait;
     }
   }
-  zoneWall.scale.set(zone.r, 320, zone.r);
-  zoneWall.position.set(zone.cx, 150, zone.cz);
+  zoneWall.scale.set(zone.r, 340, zone.r);
+  zoneWall.position.set(zone.cx, 160, zone.cz);
   zoneWallMat.uniforms.time.value = performance.now()*0.001;
 
   // zone damage in half-second ticks
@@ -69,22 +70,27 @@ function updateZone(dt){
   if(zoneTick >= 0.5){
     zoneTick = 0;
     const dps = 2 + zone.phase * 2.2;
-    if(player.alive && Math.hypot(player.pos.x-zone.cx, player.pos.z-zone.cz) > zone.r)
+    if(player.alive && Math.hypot(player.pos.x-zone.cx, player.pos.z-zone.cz) > zone.r){
       damagePlayer(dps*0.5, 'THE ZONE');
+      SFX.zoneTick();
+    }
     for(const b of bots){
-      if(b.alive && Math.hypot(b.group.position.x-zone.cx, b.group.position.z-zone.cz) > zone.r)
+      if(b.alive && b.active && Math.hypot(b.group.position.x-zone.cx, b.group.position.z-zone.cz) > zone.r)
         damageBot(b, dps*0.5, 'THE ZONE');
     }
   }
 
-  // zone HUD line
+  // zone HUD line — always a countdown
   const zm = document.getElementById('zonemsg');
   const outside = player.alive && Math.hypot(player.pos.x-zone.cx, player.pos.z-zone.cz) > zone.r;
   if(outside){ zm.textContent = '⚠ RETURN TO THE ZONE'; zm.className = 'warn'; }
   else if(zone.state === 'wait'){
     zm.textContent = 'ZONE CLOSES IN ' + Math.max(0, Math.ceil(zone.t)) + 'S';
-    zm.className = zone.t < 8 ? 'warn' : '';
-  } else { zm.textContent = 'ZONE SHRINKING'; zm.className = 'warn'; }
+    zm.className = zone.t < 10 ? 'warn' : '';
+  } else {
+    zm.textContent = 'ZONE CLOSING — ' + Math.max(0, Math.ceil(zone.t)) + 'S';
+    zm.className = 'warn';
+  }
 }
 
 // ---------------- minimap ----------------
@@ -127,17 +133,35 @@ function drawMinimap(){
   mapCtx.fillStyle = 'rgba(20,40,80,0.38)';
   mapCtx.fill('evenodd');
   mapCtx.restore();
-  // current zone (blue) + next zone (white)
   mapCtx.strokeStyle = 'rgba(90,170,255,0.95)'; mapCtx.lineWidth = 1.6;
   mapCtx.beginPath(); mapCtx.arc(W2M(zone.cx), W2M(zone.cz), zone.r/WORLD*MAP_S, 0, Math.PI*2); mapCtx.stroke();
   if(zone.state === 'shrink' || zone.tr < zone.r){
     mapCtx.strokeStyle = 'rgba(255,255,255,0.9)'; mapCtx.lineWidth = 1.2;
     mapCtx.beginPath(); mapCtx.arc(W2M(zone.tcx), W2M(zone.tcz), zone.tr/WORLD*MAP_S, 0, Math.PI*2); mapCtx.stroke();
   }
+  // plane path + plane while the drop is live
+  if(dropActive && plane.visible){
+    mapCtx.strokeStyle = 'rgba(255,255,255,0.55)';
+    mapCtx.setLineDash([4,4]);
+    mapCtx.beginPath();
+    mapCtx.moveTo(W2M(dropPath.sx), W2M(dropPath.sz));
+    mapCtx.lineTo(W2M(dropPath.ex), W2M(dropPath.ez));
+    mapCtx.stroke();
+    mapCtx.setLineDash([]);
+    const pp = planePos(planeT);
+    mapCtx.fillStyle = '#fff';
+    mapCtx.beginPath(); mapCtx.arc(W2M(pp.x), W2M(pp.z), 3, 0, Math.PI*2); mapCtx.fill();
+  }
+  // vehicles
+  mapCtx.fillStyle = 'rgba(120,200,255,0.9)';
+  for(const v of vehicles){
+    if(!v.alive) continue;
+    mapCtx.fillRect(W2M(v.group.position.x)-2, W2M(v.group.position.z)-2, 4, 4);
+  }
   // bots
   mapCtx.fillStyle = '#e33';
   for(const b of bots){
-    if(!b.alive) continue;
+    if(!b.alive || !b.active) continue;
     mapCtx.beginPath();
     mapCtx.arc(W2M(b.group.position.x), W2M(b.group.position.z), 2.1, 0, Math.PI*2);
     mapCtx.fill();
@@ -165,11 +189,14 @@ function updateHealthHUD(){
   f.className = player.hp < 35 ? 'low' : '';
   document.getElementById('hptext').textContent = Math.ceil(player.hp);
 }
+function updateArmorHUD(){
+  document.getElementById('armorfill').style.width = clamp(player.armor,0,100) + '%';
+}
 function updateAmmoHUD(){
-  const holdingMed = player.holding === 'medkit';
-  if(holdingMed){
-    document.getElementById('weaponname').textContent = 'MEDKIT';
-    document.getElementById('ammotext').innerHTML = player.medkits + ' <small>/ ' + MEDKIT_CAP + '</small>';
+  const holdingItem = player.holding !== 'gun';
+  if(holdingItem){
+    document.getElementById('weaponname').textContent = ITEM_LABELS[player.holding];
+    document.getElementById('ammotext').innerHTML = player.items[player.holding] + ' <small>/ ' + ITEM_CAPS[player.holding] + '</small>';
   } else {
     const a = player.owned[player.weapon];
     document.getElementById('weaponname').textContent = WEAPONS[player.weapon].name;
@@ -179,16 +206,18 @@ function updateAmmoHUD(){
   const keysMap = { rifle:'1', shotgun:'2', sniper:'3' };
   for(const w of ['rifle','shotgun','sniper']){
     if(!player.owned[w]) continue;
-    const active = !holdingMed && w === player.weapon;
+    const active = !holdingItem && w === player.weapon;
     slots += (active ? ' <b>['+keysMap[w]+'] '+WEAPONS[w].name+'</b>' : ' ['+keysMap[w]+'] '+WEAPONS[w].name);
   }
-  slots += holdingMed ? ' <b>[4] MEDKIT</b>' : ' [4] MEDKIT';
+  slots += holdingItem ? ' <b>[E] ITEMS</b>' : ' [E] ITEMS';
   document.getElementById('slots').innerHTML = slots;
 }
-function updateMedkitHUD(){
-  const card = document.getElementById('medkitcard');
-  card.querySelector('.count').textContent = '\u00D7' + player.medkits;
-  card.className = 'itemcard' + (player.medkits > 0 ? '' : ' empty');
+function updateItemsHUD(){
+  for(const t of ['medkit','frag','smoke']){
+    const card = document.getElementById(t + 'card');
+    card.querySelector('.count').textContent = '×' + player.items[t];
+    card.className = 'itemcard' + (player.items[t] > 0 ? '' : ' empty');
+  }
 }
 function updateKillsHUD(){
   document.getElementById('kills').innerHTML = player.kills + '<small>KILLS</small>';
@@ -213,8 +242,25 @@ function showToast(msg){
   if(toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { t.style.opacity = 0; }, 1900);
 }
-function showHitmarker(){ hitmarkerOp = 1; }
+function showHitmarker(){ hitmarkerOp = 1; SFX.hit(); }
 function flashVignette(op){ vignetteOp = Math.max(vignetteOp, op === undefined ? 0.85 : op); }
+
+// ---------------- career stats ----------------
+const matchStats = { fired: 0, hit: 0, damage: 0, t0: 0 };
+function loadCareer(){
+  try { return JSON.parse(localStorage.getItem('pubgrec_stats')) || {}; }
+  catch(e){ return {}; }
+}
+function saveCareer(c){
+  try { localStorage.setItem('pubgrec_stats', JSON.stringify(c)); } catch(e){}
+}
+function careerLine(){
+  const c = loadCareer();
+  if(!c.matches) return 'first drop — good luck';
+  return 'career — ' + c.matches + ' matches · ' + (c.wins||0) + ' wins · ' + (c.kills||0) +
+         ' kills · best #' + (c.bestPlace || '-');
+}
+document.getElementById('careerline').textContent = careerLine();
 
 // ---------------- match flow ----------------
 let matchStarted = false, paused = false;
@@ -223,24 +269,33 @@ function startMatch(){
   if(matchStarted) return;
   matchStarted = true;
   gameState.playing = true;
+  SFX.unlock(); SFX.click();
+  matchStats.t0 = clock.elapsedTime;
   document.getElementById('startscreen').style.display = 'none';
   document.getElementById('hud').style.display = 'block';
-  gunRoot.visible = true;
-  // spawn on the map rim, on open ground
-  let sx, sz, guard = 0;
-  do {
-    const a = randRange(0, Math.PI*2), r = randRange(210, 330);
-    sx = Math.cos(a)*r; sz = Math.sin(a)*r; guard++;
-  } while((insideBuilding(sx,sz,4) || heightAt(sx,sz) < 0.5) && guard < 200);
-  player.pos.set(sx, groundAt(sx,sz), sz);
-  player.yaw = Math.atan2(sx, sz) + Math.PI;   // face map centre... roughly
-  player.vel.set(0,0,0);
-  updateHealthHUD(); updateAmmoHUD(); updateAliveHUD(); updateMedkitHUD(); updateKillsHUD();
+  startDrop();
+  updateHealthHUD(); updateArmorHUD(); updateAmmoHUD(); updateAliveHUD(); updateItemsHUD(); updateKillsHUD();
 }
 window.__start = startMatch;   // dev hook: start match without pointer lock
 window.__dev = {               // dev/test hooks
-  bots, player, heightAt, solidCyls, crates,
+  bots, player, heightAt, solidCyls, crates, vehicles, zone,
   tp(x, z, yaw, pitch){ player.pos.set(x, groundAt(x,z), z); player.yaw = yaw||0; player.pitch = pitch||0; },
+  skipDrop(x, z){
+    for(const b of bots){
+      if(b.chute){ b.group.remove(b.chute); b.chute = null; }
+      b.group.visible = true; b.active = true; b.dropping = false;
+      b.group.position.set(b.landing.x, groundAt(b.landing.x, b.landing.z), b.landing.z);
+    }
+    plane.visible = false;
+    if(SFX.ready){ SFX.setPlane(null); SFX.setFall(0); }
+    playerChute.visible = false;
+    dropActive = false; dropEnded = true;
+    player.dropState = 'none';
+    gunRoot.visible = true;
+    document.getElementById('dropmsg').style.display = 'none';
+    const sx = x === undefined ? 120 : x, sz = z === undefined ? 120 : z;
+    player.pos.set(sx, groundAt(sx, sz), sz);
+  },
 };
 function endGame(win, killerName){
   if(gameState.over) return;
@@ -249,19 +304,36 @@ function endGame(win, killerName){
   player.aiming = false;
   setScopeUI(false);
   cancelHeal();
+  closeInventory(false);
+  if(player.driving){ player.driving = null; SFX.setEngine(false, 0); }
+  SFX.stinger(win);
   const end = document.getElementById('endscreen');
   const title = document.getElementById('endtitle');
   const stats = document.getElementById('endstats');
+  const place = win ? 1 : aliveBotCount() + 1;
+  const acc = matchStats.fired ? Math.round(matchStats.hit / matchStats.fired * 100) : 0;
+  const mins = Math.max(0, clock.elapsedTime - matchStats.t0);
+  const timeStr = Math.floor(mins/60) + ':' + ('0' + Math.floor(mins%60)).slice(-2);
+  const line = player.kills + ' kills · ' + Math.round(matchStats.damage) + ' damage · ' +
+               acc + '% accuracy · survived ' + timeStr;
   if(win){
     end.className = 'screen win';
     title.textContent = 'WINNER WINNER CHICKEN DINNER!';
-    stats.textContent = '#1 of 24   ·   ' + player.kills + ' kills';
+    stats.innerHTML = '#1 of 40<br>' + line;
   } else {
     end.className = 'screen';
     title.textContent = 'YOU DIED';
-    stats.textContent = 'Placed #' + (aliveBotCount()+1) + ' of 24   ·   ' + player.kills +
-      ' kills   ·   eliminated by ' + killerName;
+    stats.innerHTML = 'Placed #' + place + ' of 40 · eliminated by ' + killerName + '<br>' + line;
   }
+  // career
+  const c = loadCareer();
+  c.matches = (c.matches||0) + 1;
+  c.wins = (c.wins||0) + (win ? 1 : 0);
+  c.kills = (c.kills||0) + player.kills;
+  c.bestKills = Math.max(c.bestKills||0, player.kills);
+  c.bestPlace = Math.min(c.bestPlace||99, place);
+  saveCareer(c);
+  stats.innerHTML += '<br><span class="career">' + careerLine() + '</span>';
   setTimeout(() => {
     end.style.display = 'flex';
     if(document.pointerLockElement) document.exitPointerLock();
@@ -276,9 +348,11 @@ document.getElementById('resumebtn').addEventListener('click', () => {
 });
 document.addEventListener('pointerlockchange', () => {
   pointerLocked = document.pointerLockElement === canvasEl;
-  if(matchStarted && !gameState.over && player.alive){
+  if(matchStarted && !gameState.over && player.alive && !inventoryOpen){
     if(!pointerLocked){ paused = true; document.getElementById('pausescreen').style.display = 'flex'; }
     else { paused = false; document.getElementById('pausescreen').style.display = 'none'; }
+  } else if(pointerLocked){
+    paused = false; document.getElementById('pausescreen').style.display = 'none';
   }
 });
 
@@ -299,9 +373,13 @@ function animate(){
     rig.rotation.y = player.yaw; camera.rotation.x = player.pitch;
     gunRoot.visible = false;
   } else if(dt > 0){
+    if(dropActive) updateDrop(dt);
     if(player.alive && gameState.playing) updatePlayer(dt);
     for(const b of bots) if(!b.gone) updateBot(b, dt);
-    updateZone(dt);
+    updateVehicles(dt);
+    updateThrowables(dt, t);
+    if(dropEnded) updateZone(dt);
+    else document.getElementById('zonemsg').textContent = 'ZONE STARTS WHEN YOU LAND';
   }
 
   // crate icons bob & spin
@@ -315,6 +393,7 @@ function animate(){
   updateParticles(dt); updateTracers(dt);
   if(flashTime > 0){ flashTime -= dt; if(flashTime <= 0) muzzleFlash.visible = false; }
   muzzleLight.intensity = Math.max(0, muzzleLight.intensity - dt*40);
+  if(blastT > 0){ blastT -= dt; blastLight.intensity = Math.max(0, blastLight.intensity - dt*24); }
   vignetteOp = Math.max(0, vignetteOp - dt*1.8);
   document.getElementById('vignette').style.opacity = vignetteOp;
   hitmarkerOp = Math.max(0, hitmarkerOp - dt*6);
@@ -334,5 +413,5 @@ function animate(){
   if(matchStarted) drawMinimap();
   renderer.render(scene, camera);
 }
-updateHealthHUD(); updateAmmoHUD(); updateAliveHUD(); updateMedkitHUD(); updateKillsHUD();
+updateHealthHUD(); updateArmorHUD(); updateAmmoHUD(); updateAliveHUD(); updateItemsHUD(); updateKillsHUD();
 animate();

@@ -1,12 +1,13 @@
 'use strict';
-// PUBG Recreation — humanoid bots: AI, animation, ragdolls, damage + kills
+// PUBG Recreation — bots: merged models, AI (hear/hunt/cover/heal/nades), ragdolls, damage
 
-// ---------------- bots ----------------
 const BOT_NAMES = ['ShroudFan42','xX_Sn1per_Xx','PanBandit','ChickenChaser','NoScope99','CamperJoe',
   'FryingPanda','ZoneRunner','LootGoblin','M416Enjoyer','GhillieBoi','RedZoneRick','ProneStar',
   'BushWookie','CircleKing','DinnerSeeker','PochinkiPete','CrateChaser','Level3Helmet',
-  'EnerDrinker','SchoolDropper','GhillieGirl','AFKAndy'];
-const BOT_COUNT = 23;
+  'EnerDrinker','SchoolDropper','GhillieGirl','AFKAndy','BridgeCamper','PanShield','RedDotRandy',
+  'CompensatorX','MilBaseMike','FlareGunFred','BoostedBecky','ProneAndAlone','ZigzagZoe',
+  'DinnerThief','ScopelessSam','KarKar98','UAZDriver','BuckshotBarb','TheThirdParty','LagSpike'];
+const BOT_COUNT = 39;
 const SHIRT_COLORS = [0x5a7d9c, 0x9c5a5a, 0x6f8f5a, 0x8f7a4a, 0x7a5a8f, 0x4a8f8a, 0xa06a3a, 0x616a72];
 const PANTS_COLORS = [0x3a4148, 0x4a4238, 0x39424a, 0x50483c];
 const SKIN_TONES = [0xd9a066, 0xc68a5a, 0x9c6b45, 0xe6b088];
@@ -15,72 +16,79 @@ const bots = [];
 const waypoints = [];
 doorSpots.forEach(d => waypoints.push({x:d.x, z:d.z}));
 // cluster plazas + the lake shore
-[[0,34],[-260,180],[222,-220],[240,252],[-150,-12]].forEach(p => waypoints.push({x:p[0], z:p[1]}));
-for(let i=0;i<44;i++){
-  const x = randRange(-340,340), z = randRange(-340,340);
+[[0,34],[-260,180],[222,-220],[240,252],[-150,-12],[-320,-318],[336,308],[0,356]].forEach(p => waypoints.push({x:p[0], z:p[1]}));
+for(let i=0;i<60;i++){
+  const x = randRange(-380,380), z = randRange(-380,380);
   if(!insideBuilding(x,z,2) && heightAt(x,z) > 0) waypoints.push({x,z});
 }
 
+// merged five-mesh bots: body+head, two arms, two legs — one material per bot
+function bakeGroupGeoms(group, out){
+  group.updateMatrixWorld(true);
+  group.traverse(o => {
+    if(!o.isMesh) return;
+    const g2 = o.geometry.clone();
+    g2.applyMatrix4(o.matrixWorld);
+    out.push(tintGeo(g2, o.material.color.getHex()));
+  });
+}
 function buildBotMesh(i, weapon){
   const g = new THREE.Group();
-  const mats = [];
-  function M(hex){ const m = new THREE.MeshStandardMaterial({ color:hex, flatShading:true, roughness:1 }); mats.push(m); return m; }
-  function part(geo, mat, x,y,z, parent){
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(x,y,z); mesh.castShadow = true;
-    (parent||g).add(mesh); return mesh;
-  }
-  const shirt = M(SHIRT_COLORS[i % SHIRT_COLORS.length]);
-  const pants = M(PANTS_COLORS[i % PANTS_COLORS.length]);
-  const skin  = M(SKIN_TONES[i % SKIN_TONES.length]);
-  const dark  = M(0x26282c);
+  const mat = new THREE.MeshStandardMaterial({ vertexColors:true, flatShading:true, roughness:1 });
+  const shirt = SHIRT_COLORS[i % SHIRT_COLORS.length];
+  const pants = PANTS_COLORS[i % PANTS_COLORS.length];
+  const skin  = SKIN_TONES[i % SKIN_TONES.length];
+  const hasVest = i % 3 !== 1, hg = i % 4;
+  function B(arr, w,h,d, x,y,z, hex){ arr.push(xform(tintGeo(new THREE.BoxGeometry(w,h,d), hex), x,y,z, 0)); }
 
-  // torso, belt, tactical vest, backpack
-  part(new THREE.BoxGeometry(0.62,0.72,0.34), shirt, 0,1.08,0);
-  part(new THREE.BoxGeometry(0.64,0.09,0.36), dark, 0,0.76,0);
-  if(i % 3 !== 1) part(new THREE.BoxGeometry(0.68,0.46,0.42), M(0x3a4034), 0,1.16,0);
-  if(i % 2 === 0) part(new THREE.BoxGeometry(0.46,0.52,0.20), M(0x6b5a3a), 0,1.16,-0.29);
+  // static body: torso, belt, vest, backpack, head, face, headgear
+  const body = [];
+  B(body, 0.62,0.72,0.34, 0,1.08,0, shirt);
+  B(body, 0.64,0.09,0.36, 0,0.76,0, 0x26282c);
+  if(hasVest) B(body, 0.68,0.46,0.42, 0,1.16,0, 0x3a4034);
+  if(i % 2 === 0) B(body, 0.46,0.52,0.20, 0,1.16,-0.29, 0x6b5a3a);
+  B(body, 0.36,0.36,0.36, 0,1.66,0, skin);
+  B(body, 0.055,0.05,0.02, -0.085,1.695,0.18, 0x1e1a16);
+  B(body, 0.055,0.05,0.02,  0.085,1.695,0.18, 0x1e1a16);
+  if(hg === 0)      B(body, 0.42,0.24,0.42, 0,1.81,0, 0x2e3438);                         // lvl-3 helmet
+  else if(hg === 1) B(body, 0.42,0.20,0.42, 0,1.83,0, 0xb8bcbe);                          // lvl-1 helmet
+  else if(hg === 2){ B(body, 0.40,0.12,0.40, 0,1.88,0, pants); B(body, 0.38,0.05,0.16, 0,1.83,0.26, pants); }
+  else              B(body, 0.39,0.12,0.39, 0,1.87,0, HAIR_COLORS[i % HAIR_COLORS.length]);
+  const bodyMesh = new THREE.Mesh(mergeGeoms(body), mat);
+  bodyMesh.castShadow = true; g.add(bodyMesh);
 
-  // head with a face + headgear variants
-  const headM = part(new THREE.BoxGeometry(0.36,0.36,0.36), skin, 0,1.66,0);
-  const eyeM = M(0x1e1a16);
-  part(new THREE.BoxGeometry(0.055,0.05,0.02), eyeM, -0.085, 0.035, 0.18, headM);
-  part(new THREE.BoxGeometry(0.055,0.05,0.02), eyeM,  0.085, 0.035, 0.18, headM);
-  const hg = i % 4;
-  if(hg === 0){
-    part(new THREE.BoxGeometry(0.42,0.24,0.42), M(0x2e3438), 0,0.15,0, headM);            // lvl-3 helmet
-  } else if(hg === 1){
-    part(new THREE.BoxGeometry(0.42,0.20,0.42), M(0xb8bcbe), 0,0.17,0, headM);            // lvl-1 helmet
-  } else if(hg === 2){
-    part(new THREE.BoxGeometry(0.40,0.12,0.40), pants, 0,0.22,0, headM);                  // cap
-    part(new THREE.BoxGeometry(0.38,0.05,0.16), pants, 0,0.17,0.26, headM);               // brim
-  } else {
-    part(new THREE.BoxGeometry(0.39,0.12,0.39), M(HAIR_COLORS[i % HAIR_COLORS.length]), 0,0.21,0, headM);
+  // limbs on animation pivots
+  function limb(px, py, boxes){
+    const pivot = new THREE.Object3D(); pivot.position.set(px, py, 0); g.add(pivot);
+    const mesh = new THREE.Mesh(mergeGeoms(boxes), mat);
+    mesh.castShadow = true; pivot.add(mesh);
+    return pivot;
   }
-
-  // arms: shirt sleeve + bare forearm
-  const armL = new THREE.Object3D(); armL.position.set(-0.40,1.38,0); g.add(armL);
-  const armR = new THREE.Object3D(); armR.position.set( 0.40,1.38,0); g.add(armR);
-  for(const a of [armL, armR]){
-    part(new THREE.BoxGeometry(0.18,0.36,0.18), shirt, 0,-0.13,0, a);
-    part(new THREE.BoxGeometry(0.15,0.32,0.15), skin, 0,-0.44,0, a);
-  }
-  // legs: pants + boots
-  const legL = new THREE.Object3D(); legL.position.set(-0.16,0.74,0); g.add(legL);
-  const legR = new THREE.Object3D(); legR.position.set( 0.16,0.74,0); g.add(legR);
-  for(const l of [legL, legR]){
-    part(new THREE.BoxGeometry(0.20,0.60,0.20), pants, 0,-0.30,0, l);
-    part(new THREE.BoxGeometry(0.22,0.16,0.24), M(0x2a2622), 0,-0.66,0.01, l);
-  }
-  // they visibly carry their actual weapon
-  const gun = buildGunModel(weapon, false);
-  gun.rotation.y = Math.PI;
-  gun.position.set(-0.02,-0.52,0.22);
-  gun.traverse(o => { if(o.isMesh){ o.castShadow = true; mats.push(o.material); } });
-  armR.add(gun);
-
+  const armGeo = (withGun) => {
+    const arr = [];
+    B(arr, 0.18,0.36,0.18, 0,-0.13,0, shirt);
+    B(arr, 0.15,0.32,0.15, 0,-0.44,0, skin);
+    if(withGun){
+      const gun = buildGunModel(weapon, false);
+      gun.rotation.y = Math.PI;
+      gun.position.set(-0.02,-0.52,0.22);
+      bakeGroupGeoms(gun, arr);
+    }
+    return arr;
+  };
+  const legGeo = () => {
+    const arr = [];
+    B(arr, 0.20,0.60,0.20, 0,-0.30,0, pants);
+    B(arr, 0.22,0.16,0.24, 0,-0.66,0.01, 0x2a2622);
+    return arr;
+  };
+  const armL = limb(-0.40, 1.38, armGeo(false));
+  const armR = limb( 0.40, 1.38, armGeo(true));
+  const legL = limb(-0.16, 0.74, legGeo());
+  const legR = limb( 0.16, 0.74, legGeo());
   g.scale.setScalar(randRange(0.95, 1.06));
-  return { g, armL, armR, legL, legR, mats };
+  return { g, armL, armR, legL, legR, mats: [mat],
+           armor: (hasVest ? 50 : 0) + (hg === 0 ? 40 : hg === 1 ? 25 : 0) };
 }
 
 for(let i=0;i<BOT_COUNT;i++){
@@ -89,23 +97,40 @@ for(let i=0;i<BOT_COUNT;i++){
   const bot = {
     group: parts.g, armL: parts.armL, armR: parts.armR, legL: parts.legL, legR: parts.legR,
     mats: parts.mats,
-    name: BOT_NAMES[i], hp: 100, alive: true,
+    name: BOT_NAMES[i], hp: 100, armor: parts.armor, alive: true, active: true,
     weapon,
+    medkits: Math.floor(Math.random()*3), frags: (i % 5 === 0) ? 2 : 0, grenCd: randRange(4, 10),
+    healT: 0,
     state: 'wander', dest: null, idle: randRange(0,2),
     target: null, thinkT: Math.random()*0.3, burst: 0, burstPause: randRange(0.5,1.5),
     shootT: 0, coverT: 0, walkPhase: Math.random()*6,
     speed: randRange(4.0,5.0), dead: false, deathT: 0, fallAxis: null, yaw: randRange(0,Math.PI*2),
     threat: null, threatT: 0,
+    landing: null, dropY: 0, chute: null,     // plane-drop state, driven by drop.js
   };
-  // spawn scattered, away from player spawn & buildings
+  // preferred landing spot (used by the plane drop; also the fallback ground spawn)
   let x, z, guard = 0;
   do {
-    const a = randRange(0,Math.PI*2), r = randRange(90,380);
+    const a = randRange(0,Math.PI*2), r = randRange(90,430);
     x = Math.cos(a)*r; z = Math.sin(a)*r; guard++;
   } while((insideBuilding(x,z,3) || heightAt(x,z) < 0.3) && guard < 150);
+  bot.landing = { x, z };
   bot.group.position.set(x, groundAt(x,z), z);
   scene.add(bot.group);
   bots.push(bot);
+}
+
+// nearby bots hear gunfire and come to investigate
+function reportGunshot(x, z, shooter){
+  for(const b of bots){
+    if(!b.alive || !b.active || b === shooter) continue;
+    const d = Math.hypot(b.group.position.x - x, b.group.position.z - z);
+    if(d < 55 && d > 4 && !b.target && Math.random() < 0.75){
+      b.threat = { x, z };
+      b.threatT = 6;
+    }
+  }
+  // the player "hears" via SFX distance attenuation already
 }
 
 function botEye(b){ return { x:b.group.position.x, y:b.group.position.y+1.62, z:b.group.position.z }; }
@@ -120,24 +145,39 @@ function visibleEnemies(b){
     if(d2 > 80*80) return;
     if(hasLOS(e.x,e.y,e.z, px,py+1.3,pz)) out.push({ ref, d2 });
   };
-  if(player.alive && gameState.playing) consider(player.pos.x, player.pos.y, player.pos.z, 'player');
-  for(const o of bots) if(o !== b && o.alive) consider(o.group.position.x, o.group.position.y, o.group.position.z, o);
+  if(player.alive && gameState.playing && player.dropState === 'none') consider(player.pos.x, player.pos.y, player.pos.z, 'player');
+  for(const o of bots) if(o !== b && o.alive && o.active) consider(o.group.position.x, o.group.position.y, o.group.position.z, o);
   out.sort((a,bb) => a.d2 - bb.d2);
   return out;
 }
+function zoneSafeSpot(){
+  // aim inside whichever circle is coming next
+  return zone.state === 'shrink' ? { cx: zone.tcx, cz: zone.tcz, r: zone.tr }
+                                 : { cx: zone.cx,  cz: zone.cz,  r: zone.r };
+}
 function botThink(b){
   const enemies = visibleEnemies(b);
-  // zone pressure overrides everything
   const p = b.group.position;
-  const zdx = p.x - zone.cx, zdz = p.z - zone.cz;
-  const outsideZone = Math.hypot(zdx,zdz) > zone.r - 4;
+  // zone pressure — pathing predicts the NEXT circle, not just the current one
+  const zs = zoneSafeSpot();
+  const outsideZone = Math.hypot(p.x - zs.cx, p.z - zs.cz) > zs.r - 6;
   if(outsideZone){
-    const a = Math.atan2(zone.cz - p.z, zone.cx - p.x) + randRange(-0.4,0.4);
-    const runTo = Math.max(10, zone.r * 0.55);
-    b.dest = { x: zone.cx - Math.cos(a)*randRange(0,runTo), z: zone.cz - Math.sin(a)*randRange(0,runTo) };
+    const a = Math.atan2(zs.cz - p.z, zs.cx - p.x) + randRange(-0.4,0.4);
+    const runTo = Math.max(10, zs.r * 0.55);
+    b.dest = { x: zs.cx - Math.cos(a)*randRange(0,runTo), z: zs.cz - Math.sin(a)*randRange(0,runTo) };
     b.state = 'wander';
-    b.target = enemies.length ? enemies[0].ref : null;   // may still shoot while running
+    b.target = enemies.length ? enemies[0].ref : null;
     return;
+  }
+  // opportunistic crate grab
+  for(const c of crates){
+    if(c.taken) continue;
+    const d = Math.hypot(c.group.position.x - p.x, c.group.position.z - p.z);
+    if(d < 2.4){
+      if(c.loot === 'medkit' && b.medkits < 2){ b.medkits++; c.taken = true; scene.remove(c.group); }
+      else if(c.loot === 'armor' && b.armor < 60){ b.armor = Math.min(100, b.armor + 60); c.taken = true; scene.remove(c.group); }
+      else if(c.loot === 'frag' && b.frags < 2){ b.frags++; c.taken = true; scene.remove(c.group); }
+    }
   }
   if(enemies.length){
     b.target = enemies[0].ref;
@@ -166,13 +206,23 @@ function botThink(b){
   } else {
     b.target = null;
     if(b.state === 'engage') b.state = 'wander';
-    if(b.threatT > 0 && !b.dest){
-      // someone shot us from cover — push toward where it came from
-      b.dest = { x: b.threat.x + randRange(-6,6), z: b.threat.z + randRange(-6,6) };
-      b.state = 'wander';
+    if(b.threatT > 0){
+      // someone we can't see is shooting — grenade the spot or push it
+      const d = Math.hypot(b.threat.x - p.x, b.threat.z - p.z);
+      if(b.frags > 0 && b.grenCd <= 0 && d > 10 && d < 32){
+        botThrowGrenade(b, b.threat.x, b.threat.z);
+      } else if(!b.dest){
+        b.dest = { x: b.threat.x + randRange(-6,6), z: b.threat.z + randRange(-6,6) };
+        b.state = 'wander';
+      }
     }
     if(b.state === 'wander' && !b.dest && b.idle <= 0) pickWaypoint(b);
   }
+}
+function botThrowGrenade(b, tx, tz){
+  b.frags--; b.grenCd = 14;
+  const e = botEye(b);
+  spawnGrenadeArc(e.x, e.y, e.z, tx, tz, 'frag', b.name);
 }
 function botShoot(b){
   const W = WEAPONS[b.weapon];
@@ -189,8 +239,16 @@ function botShoot(b){
   spawnTracer(muzzle.x, muzzle.y, muzzle.z, hit.x, hit.y, hit.z, 0xff8a5c);
   if(hit.kind !== 'none') impactFX(hit);
   burstSparks(muzzle.x, muzzle.y, muzzle.z, 0xffd27a, 2, 2);
+  // player hears the shot, panned by direction
+  const pdx = muzzle.x - player.pos.x, pdz = muzzle.z - player.pos.z;
+  const pd = Math.hypot(pdx, pdz);
+  const fwdx = -Math.sin(player.yaw), fwdz = -Math.cos(player.yaw);
+  const panv = pd > 1 ? (pdx*fwdz - pdz*fwdx) / pd : 0;   // cross product = left/right
+  SFX.shot(b.weapon, pd, panv);
+  reportGunshot(muzzle.x, muzzle.z, b);
   if(hit.kind === 'player') damagePlayer(W.botDmg + randRange(-2,2), b.name);
   else if(hit.kind === 'bot') damageBot(hit.bot, W.botDmg + randRange(-2,3), b.name, b);
+  else if(hit.kind === 'vehicle' && hit.vehicle) damageVehicle(hit.vehicle, W.botDmg, b.name);
 }
 function updateBot(b, dt){
   const p = b.group.position;
@@ -210,8 +268,10 @@ function updateBot(b, dt){
     }
     return;
   }
+  if(!b.active) return;                       // still riding or descending from the plane
   b.thinkT -= dt;
   b.threatT -= dt;
+  b.grenCd -= dt;
   if(b.thinkT <= 0){ botThink(b); b.thinkT = 0.20 + Math.random()*0.08; }
 
   // movement
@@ -238,7 +298,11 @@ function updateBot(b, dt){
     b.idle -= dt;
     if(b.state === 'cover'){
       b.coverT -= dt;
-      if(!b.target && b.hp < 65) b.hp = Math.min(65, b.hp + 11*dt);   // patch up behind cover
+      // patch up with a medkit behind cover
+      if(!b.target && b.hp < 60 && b.medkits > 0){
+        b.healT += dt;
+        if(b.healT > 3.5){ b.healT = 0; b.medkits--; b.hp = Math.min(100, b.hp + 70); }
+      } else if(b.target) b.healT = 0;
       if(b.coverT <= 0) b.state = 'wander';
     }
     p.y = groundAt(p.x, p.z);
@@ -291,15 +355,24 @@ function updateBot(b, dt){
 // ---------------- damage / kills ----------------
 const gameState = { playing:false, over:false, startedAt:0 };
 function aliveBotCount(){ let n=0; for(const b of bots) if(b.alive) n++; return n; }
+function absorb(dmg, wearer){
+  // armor soaks 70% of incoming damage while it lasts
+  if(wearer.armor > 0){
+    const soaked = Math.min(wearer.armor, dmg * 0.7);
+    wearer.armor -= soaked;
+    return dmg - soaked;
+  }
+  return dmg;
+}
 function damageBot(bot, dmg, killerName, attacker){
-  if(!bot.alive) return;
-  bot.hp -= dmg;
+  if(!bot.alive || !bot.active) return;
+  bot.hp -= absorb(dmg, bot);
+  if(killerName === 'You') showHitmarker();
   if(attacker){
     const ap = attacker === 'player' ? player.pos : attacker.group.position;
     bot.threat = { x: ap.x, z: ap.z };
     bot.threatT = 7;
   }
-  if(killerName === 'You') showHitmarker();
   const p = bot.group.position;
   burstSparks(p.x, p.y+1.2, p.z, 0xffca7a, 4, 3);
   if(bot.hp <= 0){
@@ -307,7 +380,7 @@ function damageBot(bot, dmg, killerName, attacker){
     const a = randRange(0, Math.PI*2);
     bot.fallAxis = { x: Math.cos(a)*0.9, z: Math.sin(a)*0.9,
       f1: randRange(-1.5,1.5), f2: randRange(-1.5,1.5), f3: randRange(-0.8,0.8), f4: randRange(-0.8,0.8) };
-    if(killerName === 'You'){ player.kills++; updateKillsHUD(); }
+    if(killerName === 'You'){ player.kills++; updateKillsHUD(); SFX.kill(); }
     addKillFeed(killerName, bot.name);
     updateAliveHUD();
     checkVictory();
@@ -315,9 +388,10 @@ function damageBot(bot, dmg, killerName, attacker){
 }
 function damagePlayer(dmg, killerName){
   if(!player.alive || !gameState.playing) return;
-  player.hp -= dmg;
+  player.hp -= absorb(dmg, player);
   flashVignette();
-  updateHealthHUD();
+  SFX.hurt();
+  updateHealthHUD(); updateArmorHUD();
   if(player.hp <= 0){
     player.hp = 0; player.alive = false;
     addKillFeed(killerName, 'You');

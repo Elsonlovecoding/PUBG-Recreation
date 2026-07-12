@@ -2,7 +2,7 @@
 // PUBG Recreation — village/road layout, noise heightfield, vertex-colored terrain chunks
 
 // ---------------- world layout : buildings & dirt roads ----------------
-const WORLD = 900, HALF = WORLD/2;
+const WORLD = 1000, HALF = WORLD/2;
 // clusters: Oakfield village (center), Riverside hamlet (NW), military depot (SE),
 // hilltop farm (NE) and lone houses scattered around the island
 const buildings = [
@@ -38,6 +38,16 @@ const buildings = [
   { x:-280, z:-180, w:10, d:8, h:4.2, door:'E' },
   { x: 120, z:330,  w:11, d:9, h:4.6, door:'S' },
   { x: 60,  z:-120, w:10, d:8, h:4.2, door:'W' },
+  // south farm
+  { x:-320, z:-315, w:14, d:10, h:5.6, door:'N' },
+  { x:-345, z:-300, w:10, d:8,  h:4.2, door:'E' },
+  { x:-300, z:-338, w:8,  d:7,  h:3.6, door:'N' },
+  // east row
+  { x: 335, z:295,  w:11, d:9,  h:4.6, door:'W' },
+  { x: 338, z:322,  w:10, d:8,  h:4.2, door:'W' },
+  // far lone houses
+  { x: 0,   z:360,  w:11, d:9,  h:4.6, door:'S' },
+  { x:-360, z:180,  w:10, d:8,  h:4.2, door:'E' },
 ];
 const roads = [
   { ax:0,    az:-50,  bx:0,    bz:36,   hw:2.8 },   // Oakfield main street
@@ -56,6 +66,11 @@ const roads = [
   { ax:330,  az:-60,  bx:348,  bz:50,   hw:2.0 },
   { ax:0,    az:-50,  bx:-52,  bz:-288, hw:2.2 },   // south track
   { ax:244,  az:252,  bx:128,  bz:322,  hw:2.0 },   // farm to north house
+  { ax:-52,  az:-288, bx:-300, bz:-310, hw:2.2 },   // to the south farm
+  { ax:244,  az:252,  bx:330,  bz:300,  hw:2.0 },   // to the east row
+  { ax:0,    az:36,   bx:30,   bz:200,  hw:2.2 },   // north road
+  { ax:30,   az:200,  bx:0,    bz:352,  hw:2.2 },
+  { ax:-338, az:60,   bx:-358, bz:172,  hw:1.8 },   // west lone link
 ];
 function distToSeg(px, pz, r){
   const dx=r.bx-r.ax, dz=r.bz-r.az, L2=dx*dx+dz*dz;
@@ -86,7 +101,7 @@ function baseHeight(x,z){
   h += Noise.fbm(x*0.013+7.3, z*0.013-3.1, 3, 2.0, 0.5) * 2.8;  // small detail
   const lake = 1 - smoothstep(12, 62, Math.hypot(x+150, z+60)); // shallow lake basin
   h = lerp(h, -3.4, Math.min(1, lake*1.5));
-  const edge = smoothstep(340, 438, Math.max(Math.abs(x), Math.abs(z)));
+  const edge = smoothstep(385, 492, Math.max(Math.abs(x), Math.abs(z)));
   h = h*(1-edge*0.92) - edge*5.0;                               // beach slopes at map rim
   return h;
 }
@@ -130,7 +145,7 @@ function colorFor(x, z, h, slope){
   c = mix3(c, C_DIRT, smoothstep(0.32, 0.78, slope));                 // dirt on slopes
   c = mix3(c, C_ROCK, smoothstep(0.85, 1.30, slope));                 // rock on cliffs
   const sandF = Math.max(
-    smoothstep(340, 428, Math.max(Math.abs(x), Math.abs(z))),         // sand near map edges
+    smoothstep(385, 478, Math.max(Math.abs(x), Math.abs(z))),         // sand near map edges
     1 - smoothstep(-1.2, 0.6, h));                                    // sand in low basins
   c = mix3(c, C_SAND, sandF);
   const rf = roadFactorGen(x,z);
@@ -142,7 +157,7 @@ function colorFor(x, z, h, slope){
 }
 
 // ---------------- build terrain (6x6 chunk meshes) + runtime height grid ----------------
-const SEG = 300, STEP = WORLD/SEG, CHUNKS = 10, CSEG = SEG/CHUNKS;
+const SEG = 330, STEP = WORLD/SEG, CHUNKS = 11, CSEG = SEG/CHUNKS;
 const heightGrid = new Float32Array((SEG+1)*(SEG+1));
 {
   const e = 1.1;

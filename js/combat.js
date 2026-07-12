@@ -57,15 +57,16 @@ function castShot(o, d, maxT, ignoreActor){
     const t = rayVsAABB(o.x,o.y,o.z, d.x,d.y,d.z, c, bestT);
     if(t >= 0 && t < bestT){ bestT = t; kind = 'wall'; }
   }
+  let hitVeh = null;
   for(const c of solidCyls){
     const t = rayVsCylXZ(o.x, o.z, d.x, d.z, c.x, c.z, c.r, bestT);
     if(t >= 0){
       const y = o.y + d.y * t;
-      if(y > c.y0 && y < c.y1){ bestT = t; kind = c.kind; hitBot = null; }
+      if(y > c.y0 && y < c.y1){ bestT = t; kind = c.kind; hitBot = null; hitVeh = c.ref || null; }
     }
   }
   for(const bot of bots){
-    if(!bot.alive || bot === ignoreActor) continue;
+    if(!bot.alive || !bot.active || bot === ignoreActor) continue;
     const p = bot.group.position;
     const box = { minX:p.x-0.45, maxX:p.x+0.45, minY:p.y, maxY:p.y+1.85, minZ:p.z-0.45, maxZ:p.z+0.45 };
     const t = rayVsAABB(o.x,o.y,o.z, d.x,d.y,d.z, box, bestT);
@@ -77,7 +78,7 @@ function castShot(o, d, maxT, ignoreActor){
     const t = rayVsAABB(o.x,o.y,o.z, d.x,d.y,d.z, box, bestT);
     if(t >= 0 && t < bestT){ bestT = t; kind = 'player'; }
   }
-  return { t:bestT, x:o.x+d.x*bestT, y:o.y+d.y*bestT, z:o.z+d.z*bestT, kind, bot:hitBot };
+  return { t:bestT, x:o.x+d.x*bestT, y:o.y+d.y*bestT, z:o.z+d.z*bestT, kind, bot:hitBot, vehicle:hitVeh };
 }
 function hasLOS(ax,ay,az, bx,by,bz){
   const dx=bx-ax, dy=by-ay, dz=bz-az;
@@ -163,9 +164,45 @@ function makeMedkitModel(){
   return g;
 }
 
+function makeGrenadeModel(){
+  const g = new THREE.Group();
+  const body = new THREE.MeshStandardMaterial({ color:0x3d4a35, flatShading:true, roughness:0.9 });
+  const metal = new THREE.MeshStandardMaterial({ color:0x8a8f94, flatShading:true, roughness:0.6 });
+  const m = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 0), body); g.add(m);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.08, 6), metal);
+  top.position.y = 0.18; g.add(top);
+  const lever = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.16, 0.05), metal);
+  lever.position.set(0.05, 0.12, 0); lever.rotation.z = -0.35; g.add(lever);
+  return g;
+}
+function makeSmokeModel(){
+  const g = new THREE.Group();
+  const can = new THREE.MeshStandardMaterial({ color:0x707a80, flatShading:true, roughness:0.7 });
+  const band = new THREE.MeshStandardMaterial({ color:0xd8d8d8, flatShading:true, roughness:0.7 });
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.34, 8), can); g.add(m);
+  const b = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.115, 0.06, 8), band);
+  b.position.y = 0.09; g.add(b);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.06, 6), band);
+  top.position.y = 0.20; g.add(top);
+  return g;
+}
+function makeArmorModel(){
+  const g = new THREE.Group();
+  const kevlar = new THREE.MeshStandardMaterial({ color:0x39414a, flatShading:true, roughness:0.9 });
+  const strap = new THREE.MeshStandardMaterial({ color:0x23282e, flatShading:true, roughness:0.9 });
+  const plate = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.52, 0.16), kevlar); g.add(plate);
+  for(const sx of [-1, 1]){
+    const s = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.16, 0.20), strap);
+    s.position.set(sx*0.14, 0.32, 0); g.add(s);
+  }
+  const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.16, 0.06), strap);
+  pouch.position.set(0, -0.08, 0.11); g.add(pouch);
+  return g;
+}
+
 // ---------------- loot crates ----------------
 const crates = [];
-const CRATE_LOOT = ['shotgun','medkit','sniper','rifle','medkit','shotgun','medkit','sniper','rifle','medkit'];
+const CRATE_LOOT = ['shotgun','medkit','armor','sniper','frag','rifle','medkit','smoke','armor','medkit','frag','sniper','armor','medkit','rifle','smoke'];
 buildings.forEach((b, i) => {
   const loot = CRATE_LOOT[i % CRATE_LOOT.length];
   const g = new THREE.Group();
@@ -179,12 +216,11 @@ buildings.forEach((b, i) => {
     strip.position.set(ex, 0.4, ez); g.add(strip);
   }
   let icon;
-  if(loot === 'medkit'){
-    icon = makeMedkitModel();
-  } else {
-    icon = buildGunModel(loot, false);        // the loot IS a miniature of the weapon
-    icon.scale.setScalar(0.85);
-  }
+  if(loot === 'medkit') icon = makeMedkitModel();
+  else if(loot === 'frag'){ icon = makeGrenadeModel(); icon.scale.setScalar(1.6); }
+  else if(loot === 'smoke'){ icon = makeSmokeModel(); icon.scale.setScalar(1.5); }
+  else if(loot === 'armor') icon = makeArmorModel();
+  else { icon = buildGunModel(loot, false); icon.scale.setScalar(0.85); }   // miniature of the weapon
   icon.position.y = 1.35; g.add(icon);
   const cx = b.x + randRange(-b.w*0.18, b.w*0.18), cz = b.z + randRange(-b.d*0.18, b.d*0.18);
   g.position.set(cx, groundAt(cx,cz), cz);

@@ -14,13 +14,14 @@
   <div id="crosshair"><span class="l"></span><span class="r"></span><span class="u"></span><span class="d"></span></div>
   <div id="hitmarker"><span class="a"></span><span class="b"></span><span class="c"></span><span class="d"></span></div>
   <div id="topright">
-    <div id="alive">24<small>ALIVE</small></div>
+    <div id="alive">40<small>ALIVE</small></div>
     <div id="kills">0<small>KILLS</small></div>
     <div id="killfeed"></div>
   </div>
   <div id="zonemsg">ZONE CLOSES IN 20</div>
   <div id="healthwrap">
     <div id="healbar"><div id="healfill"></div><span>USING MEDKIT</span></div>
+    <div id="armorbar"><div id="armorfill"></div></div>
     <div id="healthbar"><div id="healthfill"></div></div>
     <div id="hptext">100</div>
   </div>
@@ -28,9 +29,21 @@
     <div class="itemcard" id="medkitcard">
       <div class="icon">✚</div>
       <div class="count">×1</div>
-      <div class="label">MEDKIT&nbsp;&nbsp;[4]</div>
+      <div class="label">MEDKIT</div>
     </div>
+    <div class="itemcard" id="fragcard">
+      <div class="icon frag">●</div>
+      <div class="count">×1</div>
+      <div class="label">FRAG</div>
+    </div>
+    <div class="itemcard" id="smokecard">
+      <div class="icon smoke">●</div>
+      <div class="count">×1</div>
+      <div class="label">SMOKE</div>
+    </div>
+    <div class="itemhint">[E] INVENTORY</div>
   </div>
+  <div id="dropmsg">PRESS <b>F</b> TO JUMP</div>
   <div id="ammo">
     <div id="weaponname">RIFLE</div>
     <div id="ammotext">30 <small>/ 90</small></div>
@@ -47,6 +60,14 @@
   </div>
 </div>
 
+<div id="inventory">
+  <h2>INVENTORY</h2>
+  <div class="invrow" data-item="medkit"><span class="ic med">✚</span><span class="nm">Medkit</span><span class="ct">×1</span><span class="eq">HOLD</span></div>
+  <div class="invrow" data-item="frag"><span class="ic frag">●</span><span class="nm">Frag Grenade</span><span class="ct">×1</span><span class="eq">HOLD</span></div>
+  <div class="invrow" data-item="smoke"><span class="ic smoke">●</span><span class="nm">Smoke Grenade</span><span class="ct">×1</span><span class="eq">HOLD</span></div>
+  <div class="invhint">click an item to take it in hand · <b>E</b> to close · guns on <b>1 / 2 / 3</b></div>
+</div>
+
 <div id="startscreen" class="screen">
   <h1>PUBG <span>Recreation</span></h1>
   <div class="sub">Low Poly Battle Royale</div>
@@ -56,10 +77,11 @@
     <span><b>WASD</b> — Move</span><span><b>Mouse</b> — Look / Shoot</span>
     <span><b>Right Click</b> — Aim (sniper scope)</span><span><b>Shift</b> — Sprint</span>
     <span><b>Space</b> — Jump</span><span><b>R</b> — Reload</span>
-    <span><b>1 / 2 / 3</b> — Switch Weapon</span><span><b>4 / H</b> — Hold Medkit (click to apply)</span>
-    <span><b>Sniper</b> — Hold fire, release to shoot</span>
+    <span><b>1 / 2 / 3</b> — Weapons</span><span><b>E</b> — Inventory (meds &amp; throwables)</span>
+    <span><b>F</b> — Jump from plane / Vehicle</span><span><b>Sniper</b> — Hold fire, release to shoot</span>
   </div>
-  <div class="flavor">24 players &middot; last one standing wins &middot; stay inside the zone</div>
+  <div class="flavor">40 players &middot; parachute in &middot; last one standing wins</div>
+  <div class="flavor" id="careerline"></div>
 </div>
 
 <div id="endscreen" class="screen">
@@ -78,6 +100,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/audio.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/terrain.js"></script>
 <script src="js/world.js"></script>
@@ -85,6 +108,9 @@
 <script src="js/effects.js"></script>
 <script src="js/player.js"></script>
 <script src="js/bots.js"></script>
+<script src="js/items.js"></script>
+<script src="js/vehicle.js"></script>
+<script src="js/drop.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>
