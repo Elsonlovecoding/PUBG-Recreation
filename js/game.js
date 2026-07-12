@@ -166,15 +166,23 @@ function updateHealthHUD(){
   document.getElementById('hptext').textContent = Math.ceil(player.hp);
 }
 function updateAmmoHUD(){
-  const a = player.owned[player.weapon];
-  document.getElementById('weaponname').textContent = WEAPONS[player.weapon].name;
-  document.getElementById('ammotext').innerHTML = a.mag + ' <small>/ ' + a.reserve + '</small>';
+  const holdingMed = player.holding === 'medkit';
+  if(holdingMed){
+    document.getElementById('weaponname').textContent = 'MEDKIT';
+    document.getElementById('ammotext').innerHTML = player.medkits + ' <small>/ ' + MEDKIT_CAP + '</small>';
+  } else {
+    const a = player.owned[player.weapon];
+    document.getElementById('weaponname').textContent = WEAPONS[player.weapon].name;
+    document.getElementById('ammotext').innerHTML = a.mag + ' <small>/ ' + a.reserve + '</small>';
+  }
   let slots = '';
   const keysMap = { rifle:'1', shotgun:'2', sniper:'3' };
   for(const w of ['rifle','shotgun','sniper']){
     if(!player.owned[w]) continue;
-    slots += (w === player.weapon ? ' <b>['+keysMap[w]+'] '+WEAPONS[w].name+'</b>' : ' ['+keysMap[w]+'] '+WEAPONS[w].name);
+    const active = !holdingMed && w === player.weapon;
+    slots += (active ? ' <b>['+keysMap[w]+'] '+WEAPONS[w].name+'</b>' : ' ['+keysMap[w]+'] '+WEAPONS[w].name);
   }
+  slots += holdingMed ? ' <b>[4] MEDKIT</b>' : ' [4] MEDKIT';
   document.getElementById('slots').innerHTML = slots;
 }
 function updateMedkitHUD(){

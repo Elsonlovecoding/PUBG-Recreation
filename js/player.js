@@ -15,6 +15,8 @@ const player = {
   cooldown: 0, reloading: 0, firing: false, fireLatch: false,
   aiming: false, aimBlend: 0,
   medkits: 1, healing: 0,
+  holding: 'gun',            // 'gun' | 'medkit'
+  charging: false,           // sniper: fire on release
 };
 const HEAL_TIME = 4.0, HEAL_AMOUNT = 75, MEDKIT_CAP = 4;
 const rig = new THREE.Object3D();      // yaw
@@ -66,6 +68,29 @@ let currentGunMesh = gunModels.rifle;
 gunRoot.add(currentGunMesh);
 let recoil = 0, recoilRot = 0;
 
+const medkitVM = makeMedkitModel();
+medkitVM.scale.setScalar(1.25);
+medkitVM.position.set(-0.02, 0.02, 0.05);
+medkitVM.rotation.set(0.18, -0.45, 0.05);
+function equipMedkit(){
+  if(player.holding === 'medkit'){ holsterMedkit(); return; }   // press 4 again to put it away
+  if(player.medkits <= 0){ showToast('NO MEDKITS'); return; }
+  player.holding = 'medkit';
+  player.firing = false; player.charging = false; player.aiming = false;
+  gunRoot.remove(currentGunMesh);
+  gunRoot.add(medkitVM);
+  showToast('CLICK TO USE MEDKIT');
+  updateAmmoHUD();
+}
+function holsterMedkit(){
+  if(player.holding !== 'medkit') return;
+  cancelHeal();
+  player.holding = 'gun';
+  gunRoot.remove(medkitVM);
+  gunRoot.add(currentGunMesh);
+  updateAmmoHUD();
+}
+
 const scopeEl = document.getElementById('scope');
 const crosshairEl = document.getElementById('crosshair');
 let scopeShown = false;
@@ -87,6 +112,7 @@ let flashTime = 0;
 
 function setWeapon(type){
   if(!player.owned[type]) return;
+  if(player.holding === 'medkit') holsterMedkit();
   player.weapon = type;
   gunRoot.remove(currentGunMesh);
   currentGunMesh = gunModels[type];
@@ -155,7 +181,7 @@ function cancelHeal(){
 function startReload(){
   const ammo = player.owned[player.weapon];
   const W = WEAPONS[player.weapon];
-  if(player.reloading > 0 || player.healing > 0 || ammo.mag >= W.mag || ammo.reserve <= 0) return;
+  if(player.reloading > 0 || player.healing > 0 || player.holding === 'medkit' || ammo.mag >= W.mag || ammo.reserve <= 0) return;
   player.reloading = W.reload;
   document.getElementById('reloadmsg').textContent = 'RELOADING…';
 }
@@ -175,7 +201,7 @@ document.addEventListener('keydown', e => {
   keys[e.code] = true;
   if(!gameState.playing) return;
   if(e.code === 'KeyR') startReload();
-  if(e.code === 'Digit4' || e.code === 'KeyH') startHeal();
+  if(e.code === 'Digit4' || e.code === 'KeyH') equipMedkit();
   if(e.code === 'Digit1' && player.owned.rifle) setWeapon('rifle');
   if(e.code === 'Digit2' && player.owned.shotgun) setWeapon('shotgun');
   if(e.code === 'Digit3' && player.owned.sniper) setWeapon('sniper');
@@ -183,11 +209,23 @@ document.addEventListener('keydown', e => {
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 document.addEventListener('mousedown', e => {
   if(!gameState.playing || !player.alive) return;
-  if(e.button === 0){ if(player.healing > 0) cancelHeal(); player.firing = true; player.fireLatch = false; }
-  else if(e.button === 2) player.aiming = true;
+  if(e.button === 0){
+    if(player.holding === 'medkit'){ startHeal(); return; }
+    if(player.healing > 0) cancelHeal();
+    if(player.weapon === 'sniper'){ player.charging = true; return; }   // fires on release
+    player.firing = true; player.fireLatch = false;
+  }
+  else if(e.button === 2 && player.holding === 'gun') player.aiming = true;
 });
 document.addEventListener('mouseup', e => {
-  if(e.button === 0) player.firing = false;
+  if(e.button === 0){
+    player.firing = false;
+    if(player.charging){
+      player.charging = false;
+      if(gameState.playing && player.alive && player.holding === 'gun' && player.weapon === 'sniper'
+         && player.cooldown <= 0 && player.reloading <= 0 && player.healing <= 0) playerShoot();
+    }
+  }
   else if(e.button === 2) player.aiming = false;
 });
 document.addEventListener('contextmenu', e => { if(matchStarted && !gameState.over) e.preventDefault(); });
@@ -252,10 +290,11 @@ function updatePlayer(dt){
   const bobA = player.bobAmt * (1 - ab*0.7);              // steadier while aiming
   head.position.y = 1.62 + Math.sin(player.bobPhase*2) * 0.038 * bobA;
   head.position.x = Math.sin(player.bobPhase) * 0.022 * bobA;
-  head.rotation.y = Math.sin(performance.now()*0.0009) * 0.0014 * ab;
+  const steady = player.charging ? 0.3 : 1;                  // held breath before the shot
+  head.rotation.y = Math.sin(performance.now()*0.0009) * 0.0014 * ab * steady;
   camera.rotation.z = Math.sin(player.bobPhase) * 0.006 * bobA;
-  camera.rotation.x += Math.sin(performance.now()*0.0013) * 0.0012 * ab;   // breathing sway
-  const scoped = player.aiming && player.weapon === 'sniper';
+  camera.rotation.x += Math.sin(performance.now()*0.0013) * 0.0012 * ab * steady;   // breathing sway
+  const scoped = player.aiming && player.weapon === 'sniper' && player.holding === 'gun';
   let targetFov = 75;
   if(player.aiming) targetFov = scoped ? 18 : 62;
   else if(sprint && horizSpeed > 6.5) targetFov = 82;
@@ -281,6 +320,7 @@ function updatePlayer(dt){
       document.getElementById('healbar').style.display = 'none';
       updateHealthHUD(); updateMedkitHUD();
       showToast('+' + HEAL_AMOUNT + ' HP');
+      if(player.medkits <= 0) holsterMedkit(); else updateAmmoHUD();
     }
   }
 
@@ -289,7 +329,7 @@ function updatePlayer(dt){
   if(player.reloading > 0){
     player.reloading -= dt;
     if(player.reloading <= 0) finishReload();
-  } else if(player.firing && player.cooldown <= 0 && player.healing <= 0){
+  } else if(player.firing && player.cooldown <= 0 && player.healing <= 0 && player.holding === 'gun'){
     const W = WEAPONS[player.weapon];
     if(W.auto || !player.fireLatch){ playerShoot(); player.fireLatch = true; }
   }
@@ -315,7 +355,7 @@ function tryPickup(c){
     if(player.medkits >= MEDKIT_CAP) return;          // leave the crate for later
     player.medkits++;
     showToast('PICKED UP MEDKIT (' + player.medkits + '/' + MEDKIT_CAP + ')');
-    updateMedkitHUD();
+    updateMedkitHUD(); updateAmmoHUD();
   } else {
     const W = WEAPONS[c.loot];
     if(player.owned[c.loot]){

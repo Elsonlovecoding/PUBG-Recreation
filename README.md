@@ -17,7 +17,9 @@ You drop onto a 900×900 island with 23 bots, carrying all three weapons — rif
 | **Space** | Jump |
 | **R** | Reload |
 | **1 / 2 / 3** | Switch between rifle / shotgun / sniper |
-| **4 / H** | Apply a medkit (4s cast, cancelled by jumping or firing) |
+| **4 / H** | Take the medkit in hand (press again to holster) |
+| **Click** (medkit in hand) | Apply it — 4s cast, cancelled by jumping or switching |
+| **Hold click** (sniper) | Charge the shot — the bullet fires when you release |
 
 ## Project layout
 
@@ -46,5 +48,5 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 - Three weapons with distinct viewmodels, recoil, muzzle flash, tracers and hit sparks; right-click aiming with a scoped sniper view
 - Loot is recognizable at a glance: miniature weapon models and a red-cross medkit case float over crates
 - 23 bots that roam between settlements, chase, hunt whoever shot them, heal behind cover, fight each other, and ragdoll on death
-- PUBG-style medkits: carried in inventory (up to 4) and applied with a 4-second cast
+- PUBG-style medkits: carried in inventory (up to 4), equipped to the hand with 4/H and applied on click with a 4-second cast; the sniper fires on trigger release for deliberate shots
 - Shrinking zone wall, kill feed, minimap with zone circles, victory & death screens
