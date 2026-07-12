@@ -85,3 +85,16 @@
   #endscreen .stats { margin-top:14px; font-size:16px; color:#c8d2da; letter-spacing:1px; }
   #pausescreen { display:none; }
   #pausescreen h1 { font-size:34px; letter-spacing:6px; }
+
+  /* ---------- sniper scope ---------- */
+  #scope { position:absolute; inset:0; display:none; }
+  #scope .mask { position:absolute; inset:0;
+    background:radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 33vmin, rgba(0,0,0,0.5) 35vmin, rgba(0,0,0,0.98) 38vmin); }
+  #scope .lens { position:absolute; left:50%; top:50%; width:68vmin; height:68vmin;
+    transform:translate(-50%,-50%); border-radius:50%;
+    box-shadow: inset 0 0 70px rgba(0,0,0,0.75), inset 0 0 12px rgba(40,60,80,0.45); }
+  #scope .h, #scope .v { position:absolute; background:rgba(8,8,8,0.9); }
+  #scope .h { left:0; right:0; top:50%; height:2px; margin-top:-1px; }
+  #scope .v { top:0; bottom:0; left:50%; width:2px; margin-left:-1px; }
+  #scope .dot { position:absolute; left:50%; top:50%; width:5px; height:5px; margin:-2.5px 0 0 -2.5px;
+    background:rgba(215,40,30,0.95); border-radius:50%; box-shadow:0 0 4px rgba(215,40,30,0.6); }

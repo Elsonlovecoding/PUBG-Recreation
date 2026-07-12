@@ -71,7 +71,7 @@ function hasLOS(ax,ay,az, bx,by,bz){
 const WEAPONS = {
   rifle:   { name:'RIFLE',   dmg:22, botDmg:11, rpm:520, spread:0.014, pellets:1, mag:30, reload:1.8, auto:true,  kick:0.045, tracer:0xffd27a },
   shotgun: { name:'SHOTGUN', dmg:11, botDmg:8,  rpm:75,  spread:0.052, pellets:8, mag:6,  reload:2.4, auto:false, kick:0.16,  tracer:0xffb35c },
-  sniper:  { name:'SNIPER',  dmg:85, botDmg:38, rpm:42,  spread:0.002, pellets:1, mag:5,  reload:2.7, auto:false, kick:0.24,  tracer:0xaad4ff },
+  sniper:  { name:'SNIPER',  dmg:85, botDmg:38, rpm:42,  spread:0.02,  pellets:1, mag:5,  reload:2.7, auto:false, kick:0.24,  tracer:0xaad4ff },
 };
 
 // ---------------- loot crates ----------------

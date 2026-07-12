@@ -6,12 +6,13 @@ A low-poly battle royale shooter for the browser, built with [Three.js](https://
 
 ## How to play
 
-You drop onto a 500×500 island with 15 bots. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates in the village buildings, and watch the kill feed.
+You drop onto a 500×500 island with 15 bots, carrying all three weapons — rifle, shotgun and sniper. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates in the village buildings for ammo and medkits, and watch the kill feed.
 
 | Input | Action |
 |---|---|
 | **WASD** | Move |
 | **Mouse** | Look / shoot (click to grab pointer lock) |
+| **Right click (hold)** | Aim — full scope zoom on the sniper |
 | **Shift** | Sprint |
 | **Space** | Jump |
 | **R** | Reload |
@@ -39,6 +40,6 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 
 - Procedural terrain colored by height and slope — grass, dirt, rock, sand beaches — with dirt roads connecting a village
 - Real-time PCFSoft shadows, hemisphere + ambient fill, distance fog matched to the sky
-- Three weapons with distinct viewmodels, recoil, muzzle flash, tracers and hit sparks
+- Three weapons with distinct viewmodels, recoil, muzzle flash, tracers and hit sparks; right-click aiming with a scoped sniper view
 - 15 bots that roam, chase, take cover, fight each other, and ragdoll on death
 - Shrinking zone wall, loot crates, medkits, kill feed, minimap, victory & death screens

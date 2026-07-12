@@ -7,8 +7,13 @@ const player = {
   yaw: 0, pitch: 0, hp: 100, alive: true, grounded: false,
   bobPhase: 0, bobAmt: 0, kills: 0,
   weapon: 'rifle',
-  owned: { rifle: { mag: 30, reserve: 90 } },
+  owned: {
+    rifle:   { mag: 30, reserve: 90 },
+    shotgun: { mag: 6,  reserve: 18 },
+    sniper:  { mag: 5,  reserve: 15 },
+  },
   cooldown: 0, reloading: 0, firing: false, fireLatch: false,
+  aiming: false, aimBlend: 0,
 };
 const rig = new THREE.Object3D();      // yaw
 const head = new THREE.Object3D();     // pitch + eye height + bob
@@ -83,6 +88,7 @@ const gunRoot = new THREE.Object3D();          // holds current viewmodel, botto
 camera.add(gunRoot);
 head.add(camera);
 const GUN_REST = new THREE.Vector3(0.24, -0.20, -0.42);
+const GUN_ADS  = new THREE.Vector3(0, -0.175, -0.36);
 gunRoot.position.copy(GUN_REST);
 gunRoot.scale.setScalar(0.62);
 gunRoot.rotation.y = 0.05;
@@ -90,6 +96,17 @@ const gunModels = { rifle: buildGunModel('rifle'), shotgun: buildGunModel('shotg
 let currentGunMesh = gunModels.rifle;
 gunRoot.add(currentGunMesh);
 let recoil = 0, recoilRot = 0;
+
+const scopeEl = document.getElementById('scope');
+const crosshairEl = document.getElementById('crosshair');
+let scopeShown = false;
+function setScopeUI(on){
+  if(on === scopeShown) return;
+  scopeShown = on;
+  scopeEl.style.display = on ? 'block' : 'none';
+  crosshairEl.style.display = on ? 'none' : 'block';
+  gunRoot.visible = !on;                       // scope view hides the viewmodel
+}
 
 const muzzleLight = new THREE.PointLight(0xffc978, 0, 9, 2);
 scene.add(muzzleLight);
@@ -122,11 +139,12 @@ function playerShoot(){
   const origin = new THREE.Vector3(player.pos.x, player.pos.y + 1.62, player.pos.z);
   _muzzleWorld.copy(currentGunMesh.userData.muzzle);
   currentGunMesh.localToWorld(_muzzleWorld);
+  const spread = player.aiming ? W.spread * (player.weapon === 'sniper' ? 0.05 : 0.55) : W.spread;
   for(let i=0;i<W.pellets;i++){
     const d = _fwd.clone();
-    d.x += randRange(-W.spread, W.spread);
-    d.y += randRange(-W.spread, W.spread);
-    d.z += randRange(-W.spread, W.spread);
+    d.x += randRange(-spread, spread);
+    d.y += randRange(-spread, spread);
+    d.z += randRange(-spread, spread);
     d.normalize();
     const hit = castShot(origin, d, 220, 'player');
     if(hit.kind !== 'none') impactFX(hit);
@@ -179,14 +197,20 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 document.addEventListener('mousedown', e => {
-  if(!gameState.playing || !player.alive || e.button !== 0) return;
-  player.firing = true; player.fireLatch = false;
+  if(!gameState.playing || !player.alive) return;
+  if(e.button === 0){ player.firing = true; player.fireLatch = false; }
+  else if(e.button === 2) player.aiming = true;
 });
-document.addEventListener('mouseup', e => { if(e.button === 0) player.firing = false; });
+document.addEventListener('mouseup', e => {
+  if(e.button === 0) player.firing = false;
+  else if(e.button === 2) player.aiming = false;
+});
+document.addEventListener('contextmenu', e => { if(matchStarted && !gameState.over) e.preventDefault(); });
 document.addEventListener('mousemove', e => {
   if(!pointerLocked || !player.alive) return;
-  player.yaw   -= e.movementX * 0.0022;
-  player.pitch = clamp(player.pitch - e.movementY * 0.0022, -1.55, 1.55);
+  const sens = 0.0022 * Math.max(camera.fov / 75, 0.2);   // slower look when zoomed in
+  player.yaw   -= e.movementX * sens;
+  player.pitch = clamp(player.pitch - e.movementY * sens, -1.55, 1.55);
 });
 
 // ---------------- player update ----------------
@@ -201,7 +225,8 @@ function updatePlayer(dt){
   if(keys.KeyW) iz -= 1;  if(keys.KeyS) iz += 1;
   if(keys.KeyA) ix -= 1;  if(keys.KeyD) ix += 1;
   const moving = ix !== 0 || iz !== 0;
-  const speed = sprint && iz < 0 ? 9.2 : 5.6;
+  let speed = sprint && iz < 0 ? 9.2 : 5.6;
+  if(player.aiming) speed *= 0.55;
   if(moving){
     const inv = 1/Math.hypot(ix,iz);
     ix *= inv; iz *= inv;
@@ -236,14 +261,23 @@ function updatePlayer(dt){
   } else {
     player.bobAmt = lerp(player.bobAmt, 0, dt*7);
   }
-  head.position.y = 1.62 + Math.sin(player.bobPhase*2) * 0.038 * player.bobAmt;
-  head.position.x = Math.sin(player.bobPhase) * 0.022 * player.bobAmt;
-  camera.rotation.z = Math.sin(player.bobPhase) * 0.006 * player.bobAmt;
-  const targetFov = (sprint && horizSpeed > 6.5) ? 82 : 75;
-  if(Math.abs(camera.fov - targetFov) > 0.1){
-    camera.fov = lerp(camera.fov, targetFov, dt*6);
+  player.aimBlend = lerp(player.aimBlend, player.aiming ? 1 : 0, Math.min(1, dt*10));
+  const ab = player.aimBlend;
+  const bobA = player.bobAmt * (1 - ab*0.7);              // steadier while aiming
+  head.position.y = 1.62 + Math.sin(player.bobPhase*2) * 0.038 * bobA;
+  head.position.x = Math.sin(player.bobPhase) * 0.022 * bobA;
+  head.rotation.y = Math.sin(performance.now()*0.0009) * 0.0014 * ab;
+  camera.rotation.z = Math.sin(player.bobPhase) * 0.006 * bobA;
+  camera.rotation.x += Math.sin(performance.now()*0.0013) * 0.0012 * ab;   // breathing sway
+  const scoped = player.aiming && player.weapon === 'sniper';
+  let targetFov = 75;
+  if(player.aiming) targetFov = scoped ? 18 : 62;
+  else if(sprint && horizSpeed > 6.5) targetFov = 82;
+  if(Math.abs(camera.fov - targetFov) > 0.05){
+    camera.fov = lerp(camera.fov, targetFov, Math.min(1, dt*9));
     camera.updateProjectionMatrix();
   }
+  setScopeUI(scoped && camera.fov < 45);
   footstepTimer -= dt;
   if(player.grounded && horizSpeed > 6.5 && footstepTimer <= 0){
     dustPuff(player.pos.x - player.vel.x*0.06, g, player.pos.z - player.vel.z*0.06);
@@ -262,10 +296,11 @@ function updatePlayer(dt){
   recoil = lerp(recoil, 0, Math.min(1, dt*10));
   recoilRot = lerp(recoilRot, 0, Math.min(1, dt*9));
   gunRoot.position.set(
-    GUN_REST.x + Math.sin(player.bobPhase) * 0.008 * player.bobAmt,
-    GUN_REST.y + Math.abs(Math.sin(player.bobPhase*2)) * 0.010 * player.bobAmt - (player.reloading>0 ? 0.12 : 0),
-    GUN_REST.z + recoil);
+    lerp(GUN_REST.x, GUN_ADS.x, ab) + Math.sin(player.bobPhase) * 0.008 * bobA,
+    lerp(GUN_REST.y, GUN_ADS.y, ab) + Math.abs(Math.sin(player.bobPhase*2)) * 0.010 * bobA - (player.reloading>0 ? 0.12 : 0),
+    lerp(GUN_REST.z, GUN_ADS.z, ab) + recoil);
   gunRoot.rotation.x = recoilRot * 0.55 + (player.reloading>0 ? -0.4 : 0);
+  gunRoot.rotation.y = 0.05 * (1 - ab);
 
   // loot pickup
   for(const c of crates){

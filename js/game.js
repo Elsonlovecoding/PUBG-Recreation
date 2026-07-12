@@ -225,6 +225,8 @@ function endGame(win, killerName){
   if(gameState.over) return;
   gameState.over = true; gameState.playing = false;
   player.firing = false;
+  player.aiming = false;
+  setScopeUI(false);
   const end = document.getElementById('endscreen');
   const title = document.getElementById('endtitle');
   const stats = document.getElementById('endstats');
