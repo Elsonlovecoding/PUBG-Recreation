@@ -184,35 +184,61 @@
   .stattile .l { margin-top:4px; font-size:9px; letter-spacing:2.5px; color:#8a949c; }
   #endscreen .stats { margin-top:18px; }
 
-  /* ---------- lobby (PUBG-style chrome) ---------- */
+  /* ---------- lobby (PUBG-Mobile-style) ---------- */
   #startscreen.lobby { display:block; text-align:left; padding:0;
-    background:radial-gradient(ellipse at 62% 58%, rgba(6,8,10,0.0) 22%, rgba(6,8,10,0.38) 68%, rgba(6,8,10,0.72) 100%); }
-  .topbar { position:absolute; top:0; left:0; right:0; height:58px; display:flex; align-items:center;
-    padding:0 26px; gap:34px; background:linear-gradient(rgba(8,10,12,0.92), rgba(8,10,12,0.78));
-    border-bottom:1px solid rgba(255,255,255,0.12); pointer-events:auto; }
-  .logo { font-size:17px; font-weight:900; letter-spacing:3px; color:#fff; }
-  .logo span { color:#f2a900; }
-  .tabs { display:flex; gap:6px; height:100%; }
-  .tab { cursor:pointer; background:none; border:none; color:#9aa4ac; font-size:13px; font-weight:700;
-    letter-spacing:3px; padding:0 22px; height:100%; border-bottom:3px solid transparent; }
-  .tab:hover { color:#e8edf0; }
-  .tab.active { color:#fff; border-bottom-color:#f2a900; background:linear-gradient(rgba(242,169,0,0.0), rgba(242,169,0,0.10)); }
-  .playerchip { margin-left:auto; display:flex; align-items:center; gap:10px; color:#fff;
-    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14);
-    padding:6px 14px; border-radius:3px; font-size:13px; font-weight:700; letter-spacing:1px; }
-  .playerchip small { color:#f2a900; font-size:10px; letter-spacing:2px; }
-  #playername { outline:none; min-width:40px; }
+    background:radial-gradient(ellipse at 50% 55%, rgba(6,8,10,0.0) 26%, rgba(6,8,10,0.30) 66%, rgba(6,8,10,0.62) 100%); }
+
+  .profilecard { position:absolute; top:16px; left:16px; display:flex; align-items:center; gap:10px;
+    background:rgba(8,10,12,0.78); border:1px solid rgba(255,255,255,0.14); border-radius:4px;
+    padding:8px 14px 8px 8px; pointer-events:auto; }
+  .pavatar { width:42px; height:42px; border-radius:3px; background:linear-gradient(#5a7d9c,#3c5872);
+    color:#fff; font-weight:900; font-size:20px; display:flex; align-items:center; justify-content:center;
+    border:1px solid rgba(255,255,255,0.25); }
+  .pinfo { display:flex; flex-direction:column; gap:3px; }
+  #playername { color:#fff; font-size:13px; font-weight:800; letter-spacing:1.5px; outline:none; min-width:60px; }
   #playername:focus { border-bottom:1px solid #f2a900; }
+  .xpbar { width:120px; height:4px; background:rgba(255,255,255,0.12); border-radius:2px; overflow:hidden; }
+  #xpfill { height:100%; width:10%; background:#f2a900; }
+  #playerlv { color:#f2a900; font-size:9px; letter-spacing:2px; font-weight:700; }
 
-  #nameplate { position:absolute; left:55.5%; top:56%; transform:translateX(-50%);
-    color:#fff; font-size:13px; font-weight:700; letter-spacing:2px;
-    background:rgba(8,10,12,0.72); border-left:3px solid #f2a900;
-    padding:5px 14px; border-radius:2px; }
+  .leftcards { position:absolute; left:16px; top:92px; display:flex; flex-direction:column; gap:10px; width:190px; }
+  .eventcard { background:rgba(8,10,12,0.72); border:1px solid rgba(255,255,255,0.13);
+    border-left:3px solid rgba(255,255,255,0.25); border-radius:3px; padding:9px 12px;
+    display:flex; flex-direction:column; gap:2px; }
+  .eventcard.gold { border-left-color:#f2a900; }
+  .eventcard small { font-size:8px; letter-spacing:2.5px; color:#8a949c; }
+  .eventcard b { font-size:13px; letter-spacing:1.5px; color:#fff; font-weight:800; }
+  .eventcard span { font-size:10px; color:#9aa4ac; letter-spacing:0.5px; }
 
-  .lobbypanel { display:none; min-width:360px; pointer-events:auto;
-    background:rgba(12,15,18,0.92); border:1px solid rgba(255,255,255,0.16); border-radius:6px;
+  .currencies { position:absolute; top:16px; right:16px; display:flex; gap:8px; }
+  .cur { display:flex; align-items:center; gap:7px; background:rgba(8,10,12,0.78);
+    border:1px solid rgba(255,255,255,0.14); border-radius:14px; padding:5px 14px 5px 6px;
+    color:#fff; font-size:12px; font-weight:800; letter-spacing:1px; }
+  .cico { width:18px; height:18px; border-radius:50%; }
+  .cico.gold { background:radial-gradient(circle at 35% 35%, #ffd35c, #b8860b); }
+  .cico.bp { background:radial-gradient(circle at 35% 35%, #7db8e8, #2c5f8a); }
+
+  .rightcards { position:absolute; right:16px; top:64px; display:flex; flex-direction:column; gap:10px;
+    width:172px; pointer-events:auto; }
+  .featurecard { cursor:pointer; text-align:left; background:rgba(8,10,12,0.74);
+    border:1px solid rgba(255,255,255,0.14); border-radius:4px; padding:8px;
+    display:grid; grid-template-columns:44px 1fr; grid-template-rows:auto auto; column-gap:10px;
+    color:#fff; transition:border-color .12s, background .12s; }
+  .featurecard:hover { border-color:rgba(242,169,0,0.7); background:rgba(20,24,28,0.85); }
+  .featurecard b { font-size:11px; letter-spacing:2px; align-self:end; }
+  .featurecard small { grid-column:2; font-size:9px; color:#8a949c; letter-spacing:0.5px; }
+  .featurecard .fthumb { grid-row:1 / span 2; width:44px; height:38px; border-radius:3px;
+    border:1px solid rgba(255,255,255,0.18); }
+  .fthumb.wardrobe { background:linear-gradient(160deg, #9c5a5a 0 40%, #3a4148 40%); }
+  .fthumb.loadout { background:linear-gradient(160deg, #26282c 0 55%, #6e4a2e 55%); }
+  .fthumb.buggy { background:linear-gradient(160deg, #e8b83a 0 60%, #24262a 60%); }
+  .featurecard.mini { opacity:0.85; cursor:default; }
+
+  .lobbypanel { display:none; min-width:340px; pointer-events:auto;
+    background:rgba(10,13,16,0.94); border:1px solid rgba(255,255,255,0.16); border-radius:6px;
     padding:16px 18px; }
   .lobbypanel h3 { color:#f2a900; font-size:12px; letter-spacing:4px; margin-bottom:10px; }
+  .lobbypanel.center { position:absolute; left:224px; top:92px; }
   .cfgrow { display:flex; align-items:center; gap:10px; padding:7px 4px; color:#dfe6ea; font-size:13px; }
   .cfgrow .nm { width:86px; letter-spacing:2px; color:#8a949c; font-size:11px; }
   .cfgrow .swatch { width:22px; height:22px; border-radius:3px; border:1px solid rgba(255,255,255,0.3); }
@@ -222,25 +248,36 @@
     border-radius:3px; width:30px; height:26px; font-size:11px; }
   .arrow:hover { background:rgba(242,169,0,0.2); }
   .panelhint { margin-top:8px; font-size:10px; letter-spacing:1px; color:#7d8790; }
-  .lobbypanel.side { position:absolute; left:26px; top:86px; margin-top:0; }
-  .lobbypanel h3.mt { margin-top:16px; }
-  .controls.small { margin-top:8px; gap:4px 18px; font-size:11px; }
+  .controls.small { margin-top:4px; gap:5px 18px; font-size:11px; display:grid; grid-template-columns:auto auto; color:#aeb8c0; }
+  #statslist { display:flex; flex-direction:column; gap:6px; color:#dfe6ea; font-size:12px; letter-spacing:1px; }
+  #statslist .srow { display:flex; justify-content:space-between; gap:30px; padding:5px 2px;
+    border-bottom:1px solid rgba(255,255,255,0.07); }
+  #statslist .srow b { color:#f2a900; }
 
-  .bottombar { position:absolute; left:0; right:0; bottom:0; height:86px; display:flex; align-items:center;
-    padding:0 26px; background:linear-gradient(rgba(8,10,12,0.0), rgba(8,10,12,0.88) 55%);
+  #charname { position:absolute; left:50%; bottom:118px; transform:translateX(-50%);
+    color:rgba(255,255,255,0.75); font-size:10px; letter-spacing:2px;
+    text-shadow:0 1px 2px #000; }
+
+  .startdock { position:absolute; left:20px; bottom:18px; display:flex; flex-direction:column; gap:8px;
     pointer-events:auto; }
-  .careerchip { color:#c8d2da; font-size:12px; letter-spacing:2px; text-transform:uppercase;
-    background:rgba(8,10,12,0.6); border:1px solid rgba(255,255,255,0.12); padding:9px 16px; border-radius:3px; }
-  .startwrap { margin-left:auto; display:flex; align-items:center; gap:18px; }
-  .modesel { color:#9aa4ac; font-size:11px; letter-spacing:2.5px;
-    background:rgba(8,10,12,0.6); border:1px solid rgba(255,255,255,0.12); padding:9px 16px; border-radius:3px; }
-  .startbtn { cursor:pointer; width:230px; height:54px; font-size:21px; font-weight:900; letter-spacing:6px;
-    color:#151004; background:linear-gradient(#ffc233, #f2a900); border:none; border-radius:3px;
-    box-shadow:0 4px 24px rgba(242,169,0,0.35); transition:transform .08s, filter .12s; }
-  .startbtn:hover { filter:brightness(1.08); transform:translateY(-1px); }
+  .tipline { color:#c8d2da; font-size:10px; letter-spacing:1.5px;
+    background:rgba(8,10,12,0.6); padding:5px 10px; border-radius:2px; width:max-content; max-width:340px; }
+  .modechip { color:#9aa4ac; font-size:10px; letter-spacing:2.5px;
+    background:rgba(8,10,12,0.6); padding:5px 10px; border-radius:2px; width:max-content; }
+  .startbtn { cursor:pointer; width:250px; height:58px; font-size:22px; font-weight:900; letter-spacing:7px;
+    color:#151004; background:linear-gradient(#ffd23f, #f2a900); border:none; border-radius:2px;
+    transform:skewX(-6deg); box-shadow:0 4px 26px rgba(242,169,0,0.4);
+    transition:filter .12s, transform .08s; }
+  .startbtn:hover { filter:brightness(1.1); transform:skewX(-6deg) translateY(-1px); }
   .startbtn.queueing { filter:grayscale(0.7) brightness(0.7); cursor:default; }
 
-  #queuebanner { position:absolute; top:70px; left:50%; transform:translateX(-50%);
+  .bottommenu { position:absolute; right:16px; bottom:18px; display:flex; gap:8px; pointer-events:auto; }
+  .bitem { cursor:pointer; background:rgba(8,10,12,0.72); color:#c8d2da; border:1px solid rgba(255,255,255,0.16);
+    border-radius:3px; padding:10px 16px; font-size:10px; letter-spacing:2px; font-weight:700;
+    transition:color .12s, border-color .12s; }
+  .bitem:hover { color:#f2a900; border-color:rgba(242,169,0,0.6); }
+
+  #queuebanner { position:absolute; top:16px; left:50%; transform:translateX(-50%);
     display:none; align-items:center; gap:14px; pointer-events:auto;
     background:rgba(8,10,12,0.85); border:1px solid rgba(255,255,255,0.15); border-left:3px solid #f2a900;
     padding:10px 18px; border-radius:3px; color:#fff; font-size:13px; letter-spacing:2px; }
@@ -252,7 +289,7 @@
     border-radius:50%; animation:spin 0.9s linear infinite; }
   @keyframes spin { to { transform:rotate(360deg); } }
 
-    #lockhint { position:fixed; left:50%; top:64%; transform:translateX(-50%); display:none; z-index:7;
+  #lockhint { position:fixed; left:50%; top:64%; transform:translateX(-50%); display:none; z-index:7;
     color:#fff; font-size:15px; letter-spacing:3px; background:rgba(10,12,14,0.75);
     border:1px solid rgba(242,169,0,0.5); padding:10px 24px; border-radius:4px;
     animation:droppulse 1.2s ease-in-out infinite; pointer-events:none; }

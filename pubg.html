@@ -70,14 +70,43 @@
 </div>
 
 <div id="startscreen" class="screen lobby">
-  <div class="topbar">
-    <div class="logo">PUBG <span>RECREATION</span></div>
-    <div class="tabs">
-      <button class="tab active" id="tab-play">PLAY</button>
-      <button class="tab" id="tab-custom">CUSTOMIZE</button>
-      <button class="tab" id="tab-settings">SETTINGS</button>
+  <div class="profilecard">
+    <div class="pavatar" id="pavatar">P</div>
+    <div class="pinfo">
+      <div id="playername" contenteditable="true" spellcheck="false">PLAYER</div>
+      <div class="xpbar"><div id="xpfill"></div></div>
+      <small id="playerlv">LV 1</small>
     </div>
-    <div class="playerchip"><span id="playername" contenteditable="true" spellcheck="false">PLAYER</span><small id="playerlv">LV 1</small></div>
+  </div>
+  <div class="leftcards">
+    <div class="eventcard gold">
+      <small>SEASON EVENT</small>
+      <b>BLOODY SANDS</b>
+      <span>weekend zone wars</span>
+    </div>
+    <div class="eventcard">
+      <small>CAREER</small>
+      <b id="careerline">first drop</b>
+    </div>
+  </div>
+
+  <div class="currencies">
+    <div class="cur"><span class="cico gold"></span><span id="curGold">0</span></div>
+    <div class="cur"><span class="cico bp"></span><span id="curBP">0</span></div>
+  </div>
+  <div class="rightcards">
+    <button class="featurecard" id="card-custom">
+      <span class="fthumb wardrobe"></span>
+      <b>WARDROBE</b><small>customize your look</small>
+    </button>
+    <button class="featurecard" id="card-settings">
+      <span class="fthumb loadout"></span>
+      <b>LOADOUT</b><small>weapon slot order</small>
+    </button>
+    <div class="featurecard mini">
+      <span class="fthumb buggy"></span>
+      <b>BUGGY</b><small>parked by every road</small>
+    </div>
   </div>
 
   <div id="queuebanner">
@@ -87,24 +116,23 @@
     <button id="cancelqueue">CANCEL</button>
   </div>
 
-  <div id="nameplate">PLAYER</div>
-
-  <div id="avatarpanel" class="lobbypanel side">
-    <h3>CUSTOMIZE</h3>
+  <div id="avatarpanel" class="lobbypanel center">
+    <h3>WARDROBE</h3>
     <div class="cfgrow" data-cfg="shirt"><span class="nm">SHIRT</span><button class="arrow prev">&#9664;</button><span class="swatch"></span><span class="val">#1</span><button class="arrow next">&#9654;</button></div>
     <div class="cfgrow" data-cfg="pants"><span class="nm">PANTS</span><button class="arrow prev">&#9664;</button><span class="swatch"></span><span class="val">#1</span><button class="arrow next">&#9654;</button></div>
     <div class="cfgrow" data-cfg="skin"><span class="nm">SKIN</span><button class="arrow prev">&#9664;</button><span class="swatch"></span><span class="val">#1</span><button class="arrow next">&#9654;</button></div>
     <div class="cfgrow" data-cfg="head"><span class="nm">HEADGEAR</span><button class="arrow prev">&#9664;</button><span class="val wide">HAIR</span><button class="arrow next">&#9654;</button></div>
-    <div class="panelhint">changes show on your character &#8594;</div>
+    <div class="panelhint">changes show on your character</div>
   </div>
-
-  <div id="settingspanel" class="lobbypanel side">
-    <h3>WEAPON SLOTS</h3>
+  <div id="settingspanel" class="lobbypanel center">
+    <h3>LOADOUT</h3>
     <div class="cfgrow" data-slot="0"><span class="nm">SLOT 1</span><button class="arrow prev">&#9664;</button><span class="val wide">RIFLE</span><button class="arrow next">&#9654;</button></div>
     <div class="cfgrow" data-slot="1"><span class="nm">SLOT 2</span><button class="arrow prev">&#9664;</button><span class="val wide">SHOTGUN</span><button class="arrow next">&#9654;</button></div>
     <div class="cfgrow" data-slot="2"><span class="nm">SLOT 3</span><button class="arrow prev">&#9664;</button><span class="val wide">SNIPER</span><button class="arrow next">&#9654;</button></div>
     <div class="panelhint">slot 1 is in your hands on landing</div>
-    <h3 class="mt">CONTROLS</h3>
+  </div>
+  <div id="controlspanel" class="lobbypanel center">
+    <h3>CONTROLS</h3>
     <div class="controls small">
       <span><b>WASD</b> — Move</span><span><b>Mouse</b> — Look / Shoot</span>
       <span><b>Right Click</b> — Aim / Scope</span><span><b>Shift</b> — Sprint</span>
@@ -113,13 +141,23 @@
       <span><b>F</b> — Jump / Vehicle</span><span><b>V</b> — 1st / 3rd person</span>
     </div>
   </div>
+  <div id="statspanel" class="lobbypanel center">
+    <h3>MISSIONS &middot; CAREER</h3>
+    <div id="statslist"></div>
+  </div>
 
-  <div class="bottombar">
-    <div class="careerchip" id="careerline"></div>
-    <div class="startwrap">
-      <div class="modesel">SOLO &middot; 40 PLAYERS &middot; ISLAND 1.4KM</div>
-      <button id="playbtn" class="startbtn">START</button>
-    </div>
+  <div id="charname"></div>
+
+  <div class="startdock">
+    <div class="tipline" id="tipline">TIP: SLOT 1 IS DRAWN ON LANDING</div>
+    <div class="modechip">SOLO &middot; 40 PLAYERS &middot; 1.4KM ISLAND</div>
+    <button id="playbtn" class="startbtn">START</button>
+  </div>
+  <div class="bottommenu">
+    <button class="bitem" id="bm-custom">WARDROBE</button>
+    <button class="bitem" id="bm-settings">LOADOUT</button>
+    <button class="bitem" id="bm-stats">MISSIONS</button>
+    <button class="bitem" id="bm-controls">CONTROLS</button>
   </div>
 </div>
 

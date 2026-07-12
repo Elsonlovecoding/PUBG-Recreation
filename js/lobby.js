@@ -55,55 +55,91 @@ function cycleSlot(i, dir){
   refreshSlotsPanel();
 }
 
-// ---------------- tabs + panels ----------------
-const avatarPanel = document.getElementById('avatarpanel');
-const settingsPanel = document.getElementById('settingspanel');
-const TABS = { play: null, custom: avatarPanel, settings: settingsPanel };
-function setTab(name){
-  for(const t of ['play','custom','settings']){
-    document.getElementById('tab-' + t).classList.toggle('active', t === name);
-    if(TABS[t]) TABS[t].style.display = (t === name) ? 'block' : 'none';
+// ---------------- panels (cards + bottom menu open them) ----------------
+const PANELS = {
+  custom: document.getElementById('avatarpanel'),
+  settings: document.getElementById('settingspanel'),
+  controls: document.getElementById('controlspanel'),
+  stats: document.getElementById('statspanel'),
+};
+function openPanel(name){
+  const already = !!name && PANELS[name].style.display === 'block';
+  for(const k in PANELS) PANELS[k].style.display = 'none';
+  if(!already && name){
+    if(name === 'stats') fillStats();
+    PANELS[name].style.display = 'block';
   }
   SFX.ready && SFX.click();
 }
-document.getElementById('tab-play').addEventListener('click', () => setTab('play'));
-document.getElementById('tab-custom').addEventListener('click', () => setTab('custom'));
-document.getElementById('tab-settings').addEventListener('click', () => setTab('settings'));
-avatarPanel.querySelectorAll('.arrow').forEach(btn => {
+document.getElementById('card-custom').addEventListener('click', () => openPanel('custom'));
+document.getElementById('card-settings').addEventListener('click', () => openPanel('settings'));
+document.getElementById('bm-custom').addEventListener('click', () => openPanel('custom'));
+document.getElementById('bm-settings').addEventListener('click', () => openPanel('settings'));
+document.getElementById('bm-stats').addEventListener('click', () => openPanel('stats'));
+document.getElementById('bm-controls').addEventListener('click', () => openPanel('controls'));
+PANELS.custom.querySelectorAll('.arrow').forEach(btn => {
   btn.addEventListener('click', () => {
     const row = btn.closest('.cfgrow');
-    const k = row.getAttribute('data-cfg');
-    outfitCfg[k] += btn.classList.contains('next') ? 1 : -1;
+    outfitCfg[row.getAttribute('data-cfg')] += btn.classList.contains('next') ? 1 : -1;
     applyOutfitCfg();
   });
 });
-settingsPanel.querySelectorAll('.arrow').forEach(btn => {
+PANELS.settings.querySelectorAll('.arrow').forEach(btn => {
   btn.addEventListener('click', () => {
     const i = parseInt(btn.closest('.cfgrow').getAttribute('data-slot'), 10);
     cycleSlot(i, btn.classList.contains('next') ? 1 : -1);
   });
 });
+function fillStats(){
+  const s = loadJSON('pubgrec_stats', {});
+  document.getElementById('statslist').innerHTML =
+    '<div class="srow"><span>MATCHES</span><b>' + (s.matches||0) + '</b></div>' +
+    '<div class="srow"><span>CHICKEN DINNERS</span><b>' + (s.wins||0) + '</b></div>' +
+    '<div class="srow"><span>TOTAL KILLS</span><b>' + (s.kills||0) + '</b></div>' +
+    '<div class="srow"><span>MOST KILLS IN A MATCH</span><b>' + (s.bestKills||0) + '</b></div>' +
+    '<div class="srow"><span>BEST PLACEMENT</span><b>' + (s.bestPlace ? '#' + s.bestPlace : '—') + '</b></div>';
+}
 
-// ---------------- player name ----------------
+// ---------------- profile: name, level, currencies ----------------
 const NAME_KEY = 'pubgrec_name';
 const nameEl = document.getElementById('playername');
-const plateEl = document.getElementById('nameplate');
+const charName = document.getElementById('charname');
+function reflectName(){
+  const n = nameEl.textContent.trim() || 'PLAYER';
+  charName.textContent = '\u2039 ' + n + ' \u203A';
+  document.getElementById('pavatar').textContent = n[0].toUpperCase();
+}
 function loadName(){
   let n = 'PLAYER';
   try { n = localStorage.getItem(NAME_KEY) || 'PLAYER'; } catch(e){}
-  nameEl.textContent = n; plateEl.textContent = n;
+  nameEl.textContent = n;
+  reflectName();
 }
 nameEl.addEventListener('blur', () => {
   const n = (nameEl.textContent || 'PLAYER').trim().slice(0, 14).toUpperCase() || 'PLAYER';
-  nameEl.textContent = n; plateEl.textContent = n;
+  nameEl.textContent = n;
   try { localStorage.setItem(NAME_KEY, n); } catch(e){}
+  reflectName();
 });
 nameEl.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); nameEl.blur(); } });
 loadName();
 {
-  const c = loadJSON('pubgrec_stats', {});
-  document.getElementById('playerlv').textContent = 'LV ' + (1 + (c.matches || 0));
+  const s = loadJSON('pubgrec_stats', {});
+  const lv = 1 + (s.matches || 0);
+  document.getElementById('playerlv').textContent = 'LV ' + lv;
+  document.getElementById('xpfill').style.width = (10 + (lv % 10) * 9) + '%';
+  document.getElementById('curGold').textContent = 150 + (s.kills || 0) * 10;
+  document.getElementById('curBP').textContent = 500 + (s.matches || 0) * 50;
 }
+const TIPS = [
+  'TIP: SLOT 1 IS DRAWN ON LANDING — SET IT IN LOADOUT',
+  'TIP: SMOKE GRENADES BLIND THE BOTS FOR 20 SECONDS',
+  'TIP: TREE TRUNKS STOP BULLETS — CANOPIES ONLY HIDE YOU',
+  'TIP: BOTS HEAR GUNFIRE FROM 55M AND COME LOOKING',
+  'TIP: APARTMENTS HAVE BONUS LOOT ON THE SECOND FLOOR',
+  'TIP: HOLD THE SNIPER TRIGGER FROM THE HIP — IT FIRES ON RELEASE',
+];
+document.getElementById('tipline').textContent = TIPS[Math.floor(Math.random()*TIPS.length)];
 
 // ---------------- matchmaking banner ----------------
 const queueBanner = document.getElementById('queuebanner');
@@ -113,7 +149,7 @@ const startBtn = document.getElementById('playbtn');
 let queueTimer = null;
 function openQueue(){
   if(queueTimer || matchStarted) return;
-  setTab('play');
+  openPanel(null);
   queueBanner.style.display = 'flex';
   queueTitle.textContent = 'MATCHMAKING';
   startBtn.classList.add('queueing');

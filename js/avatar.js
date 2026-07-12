@@ -71,7 +71,7 @@ const avatar = (function(){
            shirtM: shirt, pantsM: pants, skinM: skin, hairM,
            headgear: { hair:[hgHair], cap:[hgCap, hgCapBrim], helmet1:[hgH1], helmet3:[hgH3] } };
 })();
-const LOBBY_SPOT = { x: -2, z: -40 };
+const LOBBY_SPOT = { x: 222, z: -221 };   // the depot yard — warehouses behind
 const lobbyPad = (function(){
   const g = new THREE.Group();
   const y = groundAt(LOBBY_SPOT.x, LOBBY_SPOT.z);

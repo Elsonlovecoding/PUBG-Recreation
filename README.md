@@ -50,7 +50,7 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 
 ## Features
 
-- PUBG-style lobby: top tab bar (PLAY / CUSTOMIZE / SETTINGS), your character posed on a staging pad with an editable nameplate, career chip and big gold START; customization (shirt/pants/skin/headgear) and weapon-slot order persist in the browser, and matchmaking runs as a banner over the lobby before deploying
+- PUBG-Mobile-style lobby staged in the depot yard: profile card with editable name/level, season-event and career cards down the left, currency pills and WARDROBE/LOADOUT feature cards down the right, rotating tips above a big angled gold START, and a MISSIONS/CONTROLS menu row; wardrobe and weapon-slot choices persist, and matchmaking runs as a banner before deploying
 
 - Procedural 1.4 km × 1.4 km island with domain-warped ridgelines, crisp dirt roads, sand beaches and a lake; ~50 buildings across eight settlement sites
 - Building variety: houses, two-storey houses, walk-up apartments with real second floors and outside staircases (bonus loot upstairs), barns, sheds, flat-roof warehouses with roll doors, farm silos and hilltop watchtowers, in six paint palettes
