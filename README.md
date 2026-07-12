@@ -6,7 +6,7 @@ A low-poly battle royale shooter for the browser, built with [Three.js](https://
 
 ## How to play
 
-A cargo plane carries 40 combatants across a 1.4 km × 1.4 km island — pick your moment, press F, and parachute in. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates for typed ammo, armor, medkits and grenades, grab a roadside buggy to rotate, and watch the kill feed. The island has four villages, a military depot, a quarry, farms with silos, watchtowers, lone houses and a lake, all linked by dirt roads.
+From the lobby, customize your character and weapon slots, hit PLAY, and queue into a match. A cargo plane then carries 40 combatants across a 1.4 km × 1.4 km island — pick your moment, press F, and parachute in. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates for typed ammo, armor, medkits and grenades, grab a roadside buggy to rotate, and watch the kill feed. The island has four villages, a military depot, a quarry, farms with silos, watchtowers, lone houses and a lake, all linked by dirt roads.
 
 | Input | Action |
 |---|---|
@@ -43,11 +43,14 @@ js/items.js        inventory, held items, grenades, smoke, explosions, loot pick
 js/vehicle.js      drivable buggies
 js/drop.js         the cargo plane, freefall and parachutes
 js/game.js         shrinking zone, minimap, HUD, career stats, match flow, main loop
+js/lobby.js        lobby menu — avatar customization, weapon-slot settings, play queue
 ```
 
 The scripts are classic (non-module) and load in dependency order, so the game runs directly from `file://`.
 
 ## Features
+
+- Lobby with a live 3D character preview: customize shirt, pants, skin and headgear (saved in the browser), set which gun sits in slot 1/2/3, then PLAY queues a 40-player match; end and pause screens return you to the lobby
 
 - Procedural 1.4 km × 1.4 km island with domain-warped ridgelines, crisp dirt roads, sand beaches and a lake; ~50 buildings across eight settlement sites
 - Building variety: houses, two-storey houses, walk-up apartments with real second floors and outside staircases (bonus loot upstairs), barns, sheds, flat-roof warehouses with roll doors, farm silos and hilltop watchtowers, in six paint palettes

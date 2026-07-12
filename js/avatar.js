@@ -21,7 +21,15 @@ const avatar = (function(){
   const eye = M(0x1e1a16);
   part(new THREE.BoxGeometry(0.055,0.05,0.02), eye, -0.085,0.035,0.18, headM);
   part(new THREE.BoxGeometry(0.055,0.05,0.02), eye,  0.085,0.035,0.18, headM);
-  part(new THREE.BoxGeometry(0.39,0.12,0.39), M(0x2b2118), 0,0.21,0, headM);
+  // headgear wardrobe — one visible at a time
+  const hairM = M(0x2b2118);
+  const hgHair = part(new THREE.BoxGeometry(0.39,0.12,0.39), hairM, 0,0.21,0, headM);
+  const capM = M(0x3a4148);
+  const hgCap = part(new THREE.BoxGeometry(0.40,0.12,0.40), capM, 0,0.22,0, headM);
+  const hgCapBrim = part(new THREE.BoxGeometry(0.38,0.05,0.16), capM, 0,0.17,0.26, headM);
+  const hgH1 = part(new THREE.BoxGeometry(0.42,0.20,0.42), M(0xb8bcbe), 0,0.17,0, headM);
+  const hgH3 = part(new THREE.BoxGeometry(0.42,0.24,0.42), M(0x2e3438), 0,0.15,0, headM);
+  hgCap.visible = hgCapBrim.visible = hgH1.visible = hgH3.visible = false;
   const armL = new THREE.Object3D(); armL.position.set(-0.40,1.38,0); g.add(armL);
   const armR = new THREE.Object3D(); armR.position.set( 0.40,1.38,0); g.add(armR);
   for(const a of [armL, armR]){
@@ -59,8 +67,18 @@ const avatar = (function(){
   armR.add(avatarMuzzle);
   g.visible = false;
   scene.add(g);
-  return { group:g, armL, armR, legL, legR, vest, guns, items, walkPhase: 0 };
+  return { group:g, armL, armR, legL, legR, vest, guns, items, walkPhase: 0,
+           shirtM: shirt, pantsM: pants, skinM: skin, hairM,
+           headgear: { hair:[hgHair], cap:[hgCap, hgCapBrim], helmet1:[hgH1], helmet3:[hgH3] } };
 })();
+const LOBBY_SPOT = { x: -2, z: -40 };
+function applyOutfit(shirtHex, pantsHex, skinHex, headKey){
+  avatar.shirtM.color.setHex(shirtHex);
+  avatar.pantsM.color.setHex(pantsHex);
+  avatar.skinM.color.setHex(skinHex);
+  for(const k in avatar.headgear)
+    for(const m of avatar.headgear[k]) m.visible = (k === headKey);
+}
 
 function setThirdPerson(on){ thirdPerson = !!on; }
 function toggleView(){
@@ -71,7 +89,21 @@ function effectiveThird(){ return thirdPerson && !scopeShown; }
 
 function updateAvatar(dt){
   const a = avatar;
-  if(!matchStarted || !player.alive || gameState.over){
+  if(!matchStarted){
+    // lobby: stand on the road, turn slowly, hold slot-1 weapon
+    const t = performance.now()*0.001;
+    a.group.visible = true;
+    a.group.position.set(LOBBY_SPOT.x, groundAt(LOBBY_SPOT.x, LOBBY_SPOT.z), LOBBY_SPOT.z);
+    a.group.rotation.y = t*0.4;
+    a.vest.visible = false;
+    for(const w in a.guns) a.guns[w].visible = (w === slotConfig[0]);
+    for(const it in a.items) a.items[it].visible = false;
+    a.armL.rotation.set(Math.sin(t*1.3)*0.05, 0, 0.06);
+    a.armR.rotation.set(-Math.sin(t*1.3)*0.05, 0, -0.06);
+    a.legL.rotation.set(0,0,0); a.legR.rotation.set(0,0,0);
+    return;
+  }
+  if(!player.alive || gameState.over){
     a.group.visible = false;
     return;
   }

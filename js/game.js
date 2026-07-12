@@ -203,11 +203,11 @@ function updateAmmoHUD(){
     document.getElementById('ammotext').innerHTML = a.mag + ' <small>/ ' + a.reserve + '</small>';
   }
   let slots = '';
-  const keysMap = { rifle:'1', shotgun:'2', sniper:'3' };
-  for(const w of ['rifle','shotgun','sniper']){
+  for(let i=0;i<3;i++){
+    const w = slotConfig[i];
     if(!player.owned[w]) continue;
     const active = !holdingItem && w === player.weapon;
-    slots += (active ? ' <b>['+keysMap[w]+'] '+WEAPONS[w].name+'</b>' : ' ['+keysMap[w]+'] '+WEAPONS[w].name);
+    slots += (active ? ' <b>['+(i+1)+'] '+WEAPONS[w].name+'</b>' : ' ['+(i+1)+'] '+WEAPONS[w].name);
   }
   slots += holdingItem ? ' <b>[E] ITEMS</b>' : ' [E] ITEMS';
   document.getElementById('slots').innerHTML = slots;
@@ -269,6 +269,7 @@ function startMatch(){
   if(matchStarted) return;
   matchStarted = true;
   gameState.playing = true;
+  setWeapon(slotConfig[0]);                       // your configured slot-1 gun
   SFX.unlock(); SFX.click();
   matchStats.t0 = clock.elapsedTime;
   document.getElementById('startscreen').style.display = 'none';
@@ -342,10 +343,6 @@ function endGame(win, killerName){
     if(document.pointerLockElement) document.exitPointerLock();
   }, win ? 900 : 1300);
 }
-document.getElementById('deploybtn').addEventListener('click', () => {
-  startMatch();
-  canvasEl.requestPointerLock && canvasEl.requestPointerLock();
-});
 document.getElementById('resumebtn').addEventListener('click', () => {
   canvasEl.requestPointerLock && canvasEl.requestPointerLock();
 });
@@ -368,14 +365,16 @@ function animate(){
   const t = clock.elapsedTime;
 
   if(!matchStarted){
-    // menu: slow orbit over the village
-    const a = t * 0.05;
-    const ox = Math.sin(a)*72, oz = 8 + Math.cos(a)*72;
-    rig.position.set(ox, Math.max(heightAt(ox,oz), heightAt(0,8)) + 17, oz);
-    player.yaw = a + Math.PI; player.pitch = -0.18;
+    // lobby: camera parked in front of your character, village behind
+    const camX = LOBBY_SPOT.x + 1.2, camZ = LOBBY_SPOT.z - 4.6;
+    const gy = groundAt(LOBBY_SPOT.x, LOBBY_SPOT.z);
+    rig.position.set(camX, gy + 1.45 + Math.sin(t*0.5)*0.04, camZ);
+    player.yaw = Math.atan2(camX - LOBBY_SPOT.x, camZ - LOBBY_SPOT.z);
+    player.pitch = -0.03;
     rig.rotation.y = player.yaw; pitchPivot.rotation.x = player.pitch;
     camera.position.set(0,0,0);
     gunRoot.visible = false;
+    updateAvatar(dt);
   } else if(dt > 0){
     if(dropActive) updateDrop(dt);
     if(player.alive && gameState.playing) updatePlayer(dt);
@@ -421,5 +420,4 @@ function animate(){
   if(matchStarted) drawMinimap();
   renderer.render(scene, camera);
 }
-updateHealthHUD(); updateArmorHUD(); updateAmmoHUD(); updateAliveHUD(); updateItemsHUD(); updateKillsHUD();
-animate();
+// HUD boot + render loop start live in lobby.js (it owns slotConfig)
