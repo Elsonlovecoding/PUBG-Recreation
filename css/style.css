@@ -1,0 +1,87 @@
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#0b0e12;
+    font-family:"Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  canvas.game { position:fixed; inset:0; display:block; }
+
+  /* ---------- HUD ---------- */
+  #hud { position:fixed; inset:0; pointer-events:none; user-select:none; z-index:5; display:none; }
+
+  #crosshair { position:absolute; left:50%; top:50%; width:0; height:0; }
+  #crosshair span { position:absolute; background:rgba(255,255,255,0.9); box-shadow:0 0 2px rgba(0,0,0,0.8); }
+  #crosshair .l { width:9px; height:2px; left:-15px; top:-1px; }
+  #crosshair .r { width:9px; height:2px; left:6px;  top:-1px; }
+  #crosshair .u { width:2px; height:9px; left:-1px; top:-15px; }
+  #crosshair .d { width:2px; height:9px; left:-1px; top:6px; }
+  #hitmarker { position:absolute; left:50%; top:50%; width:0; height:0; opacity:0; }
+  #hitmarker span { position:absolute; width:10px; height:2px; background:#ff5540; box-shadow:0 0 3px #000; }
+  #hitmarker .a { transform:rotate(45deg);  left:-14px; top:-10px; }
+  #hitmarker .b { transform:rotate(-45deg); left:4px;   top:-10px; }
+  #hitmarker .c { transform:rotate(-45deg); left:-14px; top:8px; }
+  #hitmarker .d { transform:rotate(45deg);  left:4px;   top:8px; }
+
+  #vignette { position:fixed; inset:0; pointer-events:none; z-index:4; opacity:0;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(180,20,10,0.55) 100%); }
+
+  #topright { position:absolute; top:14px; right:16px; text-align:right; }
+  #alive { display:inline-block; background:rgba(10,12,14,0.65); border:1px solid rgba(255,255,255,0.15);
+    padding:6px 12px; color:#fff; font-size:20px; font-weight:700; letter-spacing:1px; border-radius:3px; }
+  #alive small { color:#f2a900; font-size:11px; font-weight:600; margin-left:6px; letter-spacing:2px; }
+  #killfeed { margin-top:10px; font-size:13px; color:#ddd; text-shadow:0 1px 2px #000; }
+  #killfeed div { background:rgba(10,12,14,0.55); padding:3px 9px; margin-top:4px; border-radius:2px;
+    border-right:2px solid rgba(242,169,0,0.6); }
+  #killfeed .you { color:#ffd35c; }
+
+  #zonemsg { position:absolute; top:14px; left:50%; transform:translateX(-50%);
+    color:#fff; font-size:13px; letter-spacing:2px; text-transform:uppercase;
+    background:rgba(10,12,14,0.55); padding:5px 14px; border-radius:3px; text-shadow:0 1px 2px #000; }
+  #zonemsg.warn { color:#ffb14d; }
+
+  #healthwrap { position:absolute; left:50%; bottom:24px; transform:translateX(-50%);
+    width:320px; }
+  #healthbar { height:14px; background:rgba(8,10,12,0.7); border:1px solid rgba(255,255,255,0.25);
+    border-radius:3px; overflow:hidden; }
+  #healthfill { height:100%; width:100%; background:linear-gradient(#e8e8e8,#c9c9c9); transition:width 0.12s linear; }
+  #healthfill.low { background:linear-gradient(#ff7a4d,#e0341f); }
+  #hptext { position:absolute; right:-46px; top:-4px; color:#fff; font-weight:700; font-size:18px; text-shadow:0 1px 3px #000; }
+  #boots { position:absolute; left:-30px; top:-2px; color:#ccc; font-size:14px; }
+
+  #ammo { position:absolute; right:20px; bottom:20px; text-align:right; color:#fff; text-shadow:0 1px 3px #000; }
+  #weaponname { font-size:12px; letter-spacing:3px; color:#f2a900; text-transform:uppercase; margin-bottom:2px; }
+  #ammotext { font-size:34px; font-weight:800; line-height:1; }
+  #ammotext small { font-size:16px; color:#aaa; font-weight:600; }
+  #slots { font-size:11px; color:#999; margin-top:5px; letter-spacing:1px; }
+  #slots b { color:#fff; background:rgba(255,255,255,0.12); padding:1px 6px; border-radius:2px; }
+  #reloadmsg { font-size:12px; color:#ffb14d; letter-spacing:2px; margin-top:4px; height:14px; }
+
+  #minimap { position:absolute; left:16px; bottom:16px; width:190px; height:190px;
+    border:2px solid rgba(255,255,255,0.25); border-radius:4px; background:#22303a;
+    box-shadow:0 2px 12px rgba(0,0,0,0.5); }
+
+  #toast { position:absolute; left:50%; bottom:90px; transform:translateX(-50%);
+    color:#fff; font-size:14px; letter-spacing:1px; background:rgba(10,12,14,0.7);
+    padding:6px 16px; border-radius:3px; opacity:0; transition:opacity 0.25s; text-shadow:0 1px 2px #000; }
+
+  /* ---------- Screens ---------- */
+  .screen { position:fixed; inset:0; z-index:10; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; color:#fff;
+    background:radial-gradient(ellipse at 50% 35%, rgba(20,28,38,0.45) 0%, rgba(8,10,14,0.88) 100%); }
+  .screen h1 { font-size:64px; font-weight:900; letter-spacing:10px; text-transform:uppercase;
+    text-shadow:0 4px 24px rgba(0,0,0,0.9); }
+  .screen h1 span { color:#f2a900; }
+  .screen .sub { margin-top:6px; font-size:13px; letter-spacing:6px; color:#b9c4cc; text-transform:uppercase; }
+  .rule { width:340px; height:2px; margin:26px 0; background:linear-gradient(90deg,transparent,#f2a900,transparent); }
+  .btn { pointer-events:auto; cursor:pointer; font-size:18px; font-weight:700; letter-spacing:4px;
+    color:#111; background:#f2a900; border:none; padding:14px 46px; border-radius:3px;
+    text-transform:uppercase; box-shadow:0 4px 20px rgba(242,169,0,0.35); transition:transform .08s, background .15s; }
+  .btn:hover { background:#ffc233; transform:translateY(-1px); }
+  .controls { margin-top:34px; display:grid; grid-template-columns:auto auto; gap:6px 26px;
+    font-size:13px; color:#aeb8c0; text-align:left; }
+  .controls b { color:#fff; font-weight:600; }
+  #startscreen .flavor { margin-top:26px; font-size:11px; letter-spacing:3px; color:#6d7a84; text-transform:uppercase; }
+
+  #endscreen { display:none; }
+  #endscreen h1 { font-size:44px; letter-spacing:4px; }
+  #endscreen.win h1 { color:#ffd35c; text-shadow:0 0 40px rgba(242,169,0,0.6), 0 4px 20px #000; }
+  #endscreen .stats { margin-top:14px; font-size:16px; color:#c8d2da; letter-spacing:1px; }
+  #pausescreen { display:none; }
+  #pausescreen h1 { font-size:34px; letter-spacing:6px; }
