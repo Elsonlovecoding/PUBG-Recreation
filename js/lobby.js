@@ -73,10 +73,8 @@ function openPanel(name){
 }
 document.getElementById('card-custom').addEventListener('click', () => openPanel('custom'));
 document.getElementById('card-settings').addEventListener('click', () => openPanel('settings'));
-document.getElementById('bm-custom').addEventListener('click', () => openPanel('custom'));
-document.getElementById('bm-settings').addEventListener('click', () => openPanel('settings'));
-document.getElementById('bm-stats').addEventListener('click', () => openPanel('stats'));
-document.getElementById('bm-controls').addEventListener('click', () => openPanel('controls'));
+document.getElementById('card-stats').addEventListener('click', () => openPanel('stats'));
+document.getElementById('card-controls').addEventListener('click', () => openPanel('controls'));
 PANELS.custom.querySelectorAll('.arrow').forEach(btn => {
   btn.addEventListener('click', () => {
     const row = btn.closest('.cfgrow');
@@ -128,8 +126,6 @@ loadName();
   const lv = 1 + (s.matches || 0);
   document.getElementById('playerlv').textContent = 'LV ' + lv;
   document.getElementById('xpfill').style.width = (10 + (lv % 10) * 9) + '%';
-  document.getElementById('curGold').textContent = 150 + (s.kills || 0) * 10;
-  document.getElementById('curBP').textContent = 500 + (s.matches || 0) * 50;
 }
 const TIPS = [
   'TIP: SLOT 1 IS DRAWN ON LANDING — SET IT IN LOADOUT',

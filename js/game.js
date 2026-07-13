@@ -260,7 +260,6 @@ function careerLine(){
   return 'career — ' + c.matches + ' matches · ' + (c.wins||0) + ' wins · ' + (c.kills||0) +
          ' kills · best #' + (c.bestPlace || '-');
 }
-document.getElementById('careerline').textContent = careerLine();
 
 // ---------------- match flow ----------------
 let matchStarted = false, paused = false;
@@ -365,12 +364,12 @@ function animate(){
   const t = clock.elapsedTime;
 
   if(!matchStarted){
-    // lobby hero shot: character centered on the depot yard
-    const camX = LOBBY_SPOT.x, camZ = LOBBY_SPOT.z - 4.0;
-    const gy = groundAt(LOBBY_SPOT.x, LOBBY_SPOT.z);
-    rig.position.set(camX, gy + 1.32 + Math.sin(t*0.5)*0.03, camZ);
-    player.yaw = Math.atan2(camX - LOBBY_SPOT.x, camZ - LOBBY_SPOT.z);
-    player.pitch = 0.02;
+    // lobby hero shot: full-height character in the hangar
+    // (rig carries a +1.62 head offset, so subtract it to put the eye at chest height)
+    const camX = LOBBY_SPOT.x, camZ = LOBBY_SPOT.z + 0.3 - 2.9;
+    rig.position.set(camX, LOBBY_FLOOR + 1.05 - 1.62 + Math.sin(t*0.5)*0.015, camZ);
+    player.yaw = Math.atan2(camX - LOBBY_SPOT.x, camZ - (LOBBY_SPOT.z + 0.3));
+    player.pitch = 0.0;
     rig.rotation.y = player.yaw; pitchPivot.rotation.x = player.pitch;
     camera.position.set(0,0,0);
     gunRoot.visible = false;

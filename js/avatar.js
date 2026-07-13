@@ -71,19 +71,63 @@ const avatar = (function(){
            shirtM: shirt, pantsM: pants, skinM: skin, hairM,
            headgear: { hair:[hgHair], cap:[hgCap, hgCapBrim], helmet1:[hgH1], helmet3:[hgH3] } };
 })();
-const LOBBY_SPOT = { x: 222, z: -221 };   // the depot yard — warehouses behind
-const lobbyPad = (function(){
+// the lobby is its own hangar room, floating far off the south coast
+const LOBBY_SPOT = { x: 0, z: -900 };
+const LOBBY_FLOOR = 40.2;
+const lobbyRoom = (function(){
   const g = new THREE.Group();
-  const y = groundAt(LOBBY_SPOT.x, LOBBY_SPOT.z);
-  const disc = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.6, 0.14, 24),
-    new THREE.MeshStandardMaterial({ color:0x8d8a84, flatShading:true, roughness:1 }));
-  disc.position.set(LOBBY_SPOT.x, y + 0.07, LOBBY_SPOT.z);
-  disc.receiveShadow = true;
+  const M = (hex, rough) => new THREE.MeshStandardMaterial({ color:hex, flatShading:true, roughness:rough === undefined ? 1 : rough });
+  function box(w,h,d, x,y,z, mat){
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
+    m.position.set(x, y, z);
+    g.add(m); return m;
+  }
+  const cx = LOBBY_SPOT.x, cz = LOBBY_SPOT.z, fy = LOBBY_FLOOR;
+  const wall = M(0x454c53), dark = M(0x2c3238), floor = M(0x3a3d42, 0.95),
+        gold = M(0xb8860b, 0.7), steel = M(0x373d44);
+  // fully enclosed hangar so nothing bleeds through the edges
+  box(17, 0.4, 13, cx, fy - 0.2, cz - 1);                   // floor
+  box(17, 0.4, 13, cx, fy + 5.3, cz - 1);                   // ceiling
+  box(17, 5.6, 0.4, cx, fy + 2.6, cz + 3.6, wall);          // back
+  box(17, 5.6, 0.4, cx, fy + 2.6, cz - 7.4, wall);          // front (behind camera)
+  box(0.4, 5.6, 13, cx - 8.4, fy + 2.6, cz - 1, wall);      // sides
+  box(0.4, 5.6, 13, cx + 8.4, fy + 2.6, cz - 1, wall);
+  // back-wall dressing: recessed panel, gold pinstripes, girders
+  box(11.5, 3.6, 0.14, cx, fy + 2.1, cz + 3.36, dark);
+  box(0.16, 3.6, 0.18, cx - 3.6, fy + 2.1, cz + 3.3, gold);
+  box(0.16, 3.6, 0.18, cx + 3.6, fy + 2.1, cz + 3.3, gold);
+  box(11.5, 0.16, 0.18, cx, fy + 4.0, cz + 3.3, gold);
+  for(const gx of [-6, -2, 2, 6]) box(0.5, 5.2, 0.5, cx + gx*1.35, fy + 2.6, cz + 3.1, steel);
+  // ceiling light strip above the pad
+  const strip = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.08, 0.6), new THREE.MeshBasicMaterial({ color:0xf6f2e8 }));
+  strip.position.set(cx, fy + 5.08, cz - 0.6);
+  g.add(strip);
+  // props: crate stack screen-right (-x), locker + rack rifle screen-left (+x)
+  const c1 = new THREE.Mesh(crateBaseGeo, MAT_FLAT); c1.position.set(cx - 4.3, fy, cz + 1.9); c1.rotation.y = 0.4; g.add(c1);
+  const c2 = new THREE.Mesh(crateBaseGeo, MAT_FLAT); c2.position.set(cx - 4.15, fy + 0.86, cz + 2.0); c2.rotation.y = -0.2; g.add(c2);
+  const med = makeMedkitModel(); med.position.set(cx - 4.15, fy + 1.9, cz + 2.0); med.rotation.y = 0.7; g.add(med);
+  box(1.1, 3.2, 0.7, cx + 4.6, fy + 1.6, cz + 3.0, M(0x262c33));
+  const rack = buildGunModel('rifle', false);
+  rack.position.set(cx + 3.7, fy + 0.62, cz + 3.25);
+  rack.rotation.set(0, Math.PI, -0.28);
+  g.add(rack);
+  // spawn pad
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.6, 0.1, 24), M(0x51565c, 0.9));
+  disc.position.set(cx, fy + 0.05, cz + 0.3);
   g.add(disc);
-  const ring = new THREE.Mesh(new THREE.CylinderGeometry(2.62, 2.62, 0.06, 24, 1, true),
-    new THREE.MeshStandardMaterial({ color:0xf2a900, flatShading:true, roughness:0.8 }));
-  ring.position.set(LOBBY_SPOT.x, y + 0.12, LOBBY_SPOT.z);
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(1.68, 1.68, 0.05, 24, 1, true), M(0xf2a900, 0.7));
+  ring.position.set(cx, fy + 0.08, cz + 0.3);
   g.add(ring);
+  // interior lighting (visible = lobby only, so it never taxes the match)
+  const key = new THREE.PointLight(0xfff0dc, 1.35, 24);
+  key.position.set(cx, fy + 4.6, cz - 0.8);
+  g.add(key);
+  const fill = new THREE.PointLight(0x9fc0e8, 0.6, 20);
+  fill.position.set(cx - 3.2, fy + 2.2, cz - 3.6);
+  g.add(fill);
+  const rim = new THREE.PointLight(0xffd9a0, 0.45, 16);
+  rim.position.set(cx + 3.4, fy + 3.2, cz + 1.6);
+  g.add(rim);
   scene.add(g);
   return g;
 })();
@@ -105,13 +149,13 @@ function effectiveThird(){ return thirdPerson && !scopeShown; }
 function updateAvatar(dt){
   const a = avatar;
   if(!matchStarted){
-    // lobby: on the staging pad, facing the camera, slot-1 weapon in hand
+    // lobby: in the hangar, facing the camera, slot-1 weapon in hand
     const t = performance.now()*0.001;
-    lobbyPad.visible = true;
+    lobbyRoom.visible = true;
     a.group.visible = true;
-    a.group.position.set(LOBBY_SPOT.x, groundAt(LOBBY_SPOT.x, LOBBY_SPOT.z) + 0.14, LOBBY_SPOT.z);
-    a.group.rotation.y = Math.atan2(rig.position.x - LOBBY_SPOT.x, rig.position.z - LOBBY_SPOT.z)
-                         + Math.sin(t*0.4)*0.10;
+    a.group.position.set(LOBBY_SPOT.x, LOBBY_FLOOR + 0.1, LOBBY_SPOT.z + 0.3);
+    a.group.rotation.y = Math.atan2(rig.position.x - LOBBY_SPOT.x, rig.position.z - (LOBBY_SPOT.z + 0.3))
+                         + Math.sin(t*0.4)*0.08;
     a.vest.visible = false;
     for(const w in a.guns) a.guns[w].visible = (w === slotConfig[0]);
     for(const it in a.items) a.items[it].visible = false;
@@ -120,7 +164,7 @@ function updateAvatar(dt){
     a.legL.rotation.set(0,0,0); a.legR.rotation.set(0,0,0);
     return;
   }
-  lobbyPad.visible = false;
+  lobbyRoom.visible = false;
   if(!player.alive || gameState.over){
     a.group.visible = false;
     return;

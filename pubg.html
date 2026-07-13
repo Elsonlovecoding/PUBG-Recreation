@@ -78,22 +78,6 @@
       <small id="playerlv">LV 1</small>
     </div>
   </div>
-  <div class="leftcards">
-    <div class="eventcard gold">
-      <small>SEASON EVENT</small>
-      <b>BLOODY SANDS</b>
-      <span>weekend zone wars</span>
-    </div>
-    <div class="eventcard">
-      <small>CAREER</small>
-      <b id="careerline">first drop</b>
-    </div>
-  </div>
-
-  <div class="currencies">
-    <div class="cur"><span class="cico gold"></span><span id="curGold">0</span></div>
-    <div class="cur"><span class="cico bp"></span><span id="curBP">0</span></div>
-  </div>
   <div class="rightcards">
     <button class="featurecard" id="card-custom">
       <span class="fthumb wardrobe"></span>
@@ -103,10 +87,14 @@
       <span class="fthumb loadout"></span>
       <b>LOADOUT</b><small>weapon slot order</small>
     </button>
-    <div class="featurecard mini">
-      <span class="fthumb buggy"></span>
-      <b>BUGGY</b><small>parked by every road</small>
-    </div>
+    <button class="featurecard" id="card-stats">
+      <span class="fthumb stats"></span>
+      <b>STATISTICS</b><small>career record</small>
+    </button>
+    <button class="featurecard" id="card-controls">
+      <span class="fthumb controls"></span>
+      <b>CONTROLS</b><small>key bindings</small>
+    </button>
   </div>
 
   <div id="queuebanner">
@@ -142,7 +130,7 @@
     </div>
   </div>
   <div id="statspanel" class="lobbypanel center">
-    <h3>MISSIONS &middot; CAREER</h3>
+    <h3>STATISTICS</h3>
     <div id="statslist"></div>
   </div>
 
@@ -152,12 +140,6 @@
     <div class="tipline" id="tipline">TIP: SLOT 1 IS DRAWN ON LANDING</div>
     <div class="modechip">SOLO &middot; 40 PLAYERS &middot; 1.4KM ISLAND</div>
     <button id="playbtn" class="startbtn">START</button>
-  </div>
-  <div class="bottommenu">
-    <button class="bitem" id="bm-custom">WARDROBE</button>
-    <button class="bitem" id="bm-settings">LOADOUT</button>
-    <button class="bitem" id="bm-stats">MISSIONS</button>
-    <button class="bitem" id="bm-controls">CONTROLS</button>
   </div>
 </div>
 

@@ -201,25 +201,8 @@
   #xpfill { height:100%; width:10%; background:#f2a900; }
   #playerlv { color:#f2a900; font-size:9px; letter-spacing:2px; font-weight:700; }
 
-  .leftcards { position:absolute; left:16px; top:92px; display:flex; flex-direction:column; gap:10px; width:190px; }
-  .eventcard { background:rgba(8,10,12,0.72); border:1px solid rgba(255,255,255,0.13);
-    border-left:3px solid rgba(255,255,255,0.25); border-radius:3px; padding:9px 12px;
-    display:flex; flex-direction:column; gap:2px; }
-  .eventcard.gold { border-left-color:#f2a900; }
-  .eventcard small { font-size:8px; letter-spacing:2.5px; color:#8a949c; }
-  .eventcard b { font-size:13px; letter-spacing:1.5px; color:#fff; font-weight:800; }
-  .eventcard span { font-size:10px; color:#9aa4ac; letter-spacing:0.5px; }
-
-  .currencies { position:absolute; top:16px; right:16px; display:flex; gap:8px; }
-  .cur { display:flex; align-items:center; gap:7px; background:rgba(8,10,12,0.78);
-    border:1px solid rgba(255,255,255,0.14); border-radius:14px; padding:5px 14px 5px 6px;
-    color:#fff; font-size:12px; font-weight:800; letter-spacing:1px; }
-  .cico { width:18px; height:18px; border-radius:50%; }
-  .cico.gold { background:radial-gradient(circle at 35% 35%, #ffd35c, #b8860b); }
-  .cico.bp { background:radial-gradient(circle at 35% 35%, #7db8e8, #2c5f8a); }
-
-  .rightcards { position:absolute; right:16px; top:64px; display:flex; flex-direction:column; gap:10px;
-    width:172px; pointer-events:auto; }
+  .rightcards { position:absolute; right:16px; top:16px; display:flex; flex-direction:column; gap:10px;
+    width:176px; pointer-events:auto; }
   .featurecard { cursor:pointer; text-align:left; background:rgba(8,10,12,0.74);
     border:1px solid rgba(255,255,255,0.14); border-radius:4px; padding:8px;
     display:grid; grid-template-columns:44px 1fr; grid-template-rows:auto auto; column-gap:10px;
@@ -231,14 +214,14 @@
     border:1px solid rgba(255,255,255,0.18); }
   .fthumb.wardrobe { background:linear-gradient(160deg, #9c5a5a 0 40%, #3a4148 40%); }
   .fthumb.loadout { background:linear-gradient(160deg, #26282c 0 55%, #6e4a2e 55%); }
-  .fthumb.buggy { background:linear-gradient(160deg, #e8b83a 0 60%, #24262a 60%); }
-  .featurecard.mini { opacity:0.85; cursor:default; }
+  .fthumb.stats { background:linear-gradient(0deg, #f2a900 0 30%, #2a2f34 30% 55%, #f2a900 55% 70%, #2a2f34 70%); opacity:0.85; }
+  .fthumb.controls { background:repeating-linear-gradient(90deg, #3c444c 0 10px, #262b30 10px 14px); }
 
   .lobbypanel { display:none; min-width:340px; pointer-events:auto;
     background:rgba(10,13,16,0.94); border:1px solid rgba(255,255,255,0.16); border-radius:6px;
     padding:16px 18px; }
   .lobbypanel h3 { color:#f2a900; font-size:12px; letter-spacing:4px; margin-bottom:10px; }
-  .lobbypanel.center { position:absolute; left:224px; top:92px; }
+  .lobbypanel.center { position:absolute; left:24px; top:110px; }
   .cfgrow { display:flex; align-items:center; gap:10px; padding:7px 4px; color:#dfe6ea; font-size:13px; }
   .cfgrow .nm { width:86px; letter-spacing:2px; color:#8a949c; font-size:11px; }
   .cfgrow .swatch { width:22px; height:22px; border-radius:3px; border:1px solid rgba(255,255,255,0.3); }
@@ -270,12 +253,6 @@
     transition:filter .12s, transform .08s; }
   .startbtn:hover { filter:brightness(1.1); transform:skewX(-6deg) translateY(-1px); }
   .startbtn.queueing { filter:grayscale(0.7) brightness(0.7); cursor:default; }
-
-  .bottommenu { position:absolute; right:16px; bottom:18px; display:flex; gap:8px; pointer-events:auto; }
-  .bitem { cursor:pointer; background:rgba(8,10,12,0.72); color:#c8d2da; border:1px solid rgba(255,255,255,0.16);
-    border-radius:3px; padding:10px 16px; font-size:10px; letter-spacing:2px; font-weight:700;
-    transition:color .12s, border-color .12s; }
-  .bitem:hover { color:#f2a900; border-color:rgba(242,169,0,0.6); }
 
   #queuebanner { position:absolute; top:16px; left:50%; transform:translateX(-50%);
     display:none; align-items:center; gap:14px; pointer-events:auto;
