@@ -105,7 +105,7 @@ const charName = document.getElementById('charname');
 function reflectName(){
   const n = nameEl.textContent.trim() || 'PLAYER';
   charName.textContent = '\u2039 ' + n + ' \u203A';
-  document.getElementById('pavatar').textContent = n[0].toUpperCase();
+  if(!currentAvatar()) document.getElementById('pavatar').textContent = n[0].toUpperCase();
 }
 function loadName(){
   let n = 'PLAYER';
@@ -123,10 +123,102 @@ nameEl.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefaul
 loadName();
 {
   const s = loadJSON('pubgrec_stats', {});
-  const lv = 1 + (s.matches || 0);
-  document.getElementById('playerlv').textContent = 'LV ' + lv;
-  document.getElementById('xpfill').style.width = (10 + (lv % 10) * 9) + '%';
+  const li = levelInfo(s.points || 0);
+  document.getElementById('playerlv').textContent = 'LV ' + li.lv;
+  document.getElementById('xpfill').style.width = Math.max(4, li.into / li.need * 100) + '%';
 }
+
+// ---------------- profile screen ----------------
+const AVATAR_KEY = 'pubgrec_avatar';
+const profileEl = document.getElementById('profilescreen');
+const bigAvatar = document.getElementById('bigavatar');
+const pavEl = document.getElementById('pavatar');
+function makeDefaultAvatar(c1, c2, glyph){
+  const cv = document.createElement('canvas'); cv.width = cv.height = 96;
+  const x = cv.getContext('2d');
+  const gr = x.createLinearGradient(0, 0, 96, 96);
+  gr.addColorStop(0, c1); gr.addColorStop(1, c2);
+  x.fillStyle = gr; x.fillRect(0, 0, 96, 96);
+  x.font = '52px serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(glyph, 48, 54);
+  return cv.toDataURL('image/png');
+}
+const DEFAULT_AVATARS = [
+  ['#f2a900','#7a4a00','\uD83D\uDC14'], ['#5a7d9c','#22303c','\uD83E\uDE96'],
+  ['#9c5a5a','#3c2020','\uD83D\uDC80'], ['#6f8f5a','#243418','\uD83C\uDFAF'],
+  ['#7a5a8f','#2c1c38','\uD83D\uDC7E'], ['#4a8f8a','#173432','\uD83D\uDC38'],
+  ['#a06a3a','#3c2410','\uD83D\uDD25'], ['#616a72','#20262c','\uD83E\uDD47'],
+].map(a => makeDefaultAvatar(a[0], a[1], a[2]));
+function currentAvatar(){ try { return localStorage.getItem(AVATAR_KEY); } catch(e){ return null; } }
+function setAvatar(dataURL){
+  try { localStorage.setItem(AVATAR_KEY, dataURL); } catch(e){ showToast('IMAGE TOO LARGE TO SAVE'); }
+  applyAvatarEverywhere();
+  SFX.ready && SFX.click();
+}
+function applyAvatarEverywhere(){
+  const url = currentAvatar();
+  if(url){
+    pavEl.style.backgroundImage = 'url(' + url + ')';
+    pavEl.textContent = '';
+    bigAvatar.src = url;
+  } else {
+    pavEl.style.backgroundImage = 'none';
+    pavEl.textContent = (nameEl.textContent.trim()[0] || 'P').toUpperCase();
+    bigAvatar.src = DEFAULT_AVATARS[0];
+  }
+}
+{
+  const grid = document.getElementById('avatargrid');
+  DEFAULT_AVATARS.forEach(url => {
+    const im = document.createElement('img');
+    im.src = url;
+    im.addEventListener('click', () => setAvatar(url));
+    grid.appendChild(im);
+  });
+}
+document.getElementById('avatarupload').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 96;
+      const x = cv.getContext('2d');
+      const s = Math.min(img.width, img.height);            // cover-crop to square
+      x.drawImage(img, (img.width - s)/2, (img.height - s)/2, s, s, 0, 0, 96, 96);
+      setAvatar(cv.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = rd.result;
+  };
+  rd.readAsDataURL(f);
+});
+function openProfile(){
+  const s = loadJSON('pubgrec_stats', {});
+  const li = levelInfo(s.points || 0);
+  document.getElementById('profname').textContent = nameEl.textContent;
+  document.getElementById('prof-lv').textContent = 'LV ' + li.lv;
+  document.getElementById('prof-lvfill').style.width = (li.into / li.need * 100) + '%';
+  document.getElementById('prof-pts').textContent =
+    li.into + ' / ' + li.need + ' PTS TO LV ' + (li.lv + 1) + ' \u00B7 TOTAL ' + (s.points || 0) + ' PTS';
+  const rows = (s.log || []).map(m => {
+    const d = new Date(m.t);
+    const date = (d.getMonth() + 1) + '/' + d.getDate();
+    return '<div class="brow"><b class="' + (m.place === 1 ? 'win' : '') + '">#' + m.place + '</b>' +
+      '<span>' + m.kills + ' kills</span><span>' + m.dmg + ' dmg</span>' +
+      '<span class="pts">+' + m.pts + ' pts</span><small>' + date + '</small></div>';
+  }).join('');
+  document.getElementById('battlelog').innerHTML =
+    rows || '<div class="bempty">no matches yet — hit START and earn your first points</div>';
+  profileEl.style.display = 'flex';
+  SFX.ready && SFX.click();
+}
+pavEl.addEventListener('click', openProfile);
+document.getElementById('profileback').addEventListener('click', () => {
+  profileEl.style.display = 'none';
+  SFX.ready && SFX.click();
+});
+applyAvatarEverywhere();
 const TIPS = [
   'TIP: SLOT 1 IS DRAWN ON LANDING — SET IT IN LOADOUT',
   'TIP: SMOKE GRENADES BLIND THE BOTS FOR 20 SECONDS',

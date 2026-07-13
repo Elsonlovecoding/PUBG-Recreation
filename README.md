@@ -6,7 +6,7 @@ A low-poly battle royale shooter for the browser, built with [Three.js](https://
 
 ## How to play
 
-From the lobby, customize your character and weapon slots, hit PLAY, and queue into a match. A cargo plane then carries 40 combatants across a 1.4 km × 1.4 km island — pick your moment, press F, and parachute in. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates for typed ammo, armor, medkits and grenades, grab a roadside buggy to rotate, and watch the kill feed. The island has four villages, a military depot, a quarry, farms with silos, watchtowers, lone houses and a lake, all linked by dirt roads.
+From the lobby, customize your character and weapon slots, hit PLAY, and queue into a match. A cargo plane then carries 40 combatants across a 2 km × 2 km island — pick your moment, press F, and parachute in. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates for typed ammo, armor, medkits and grenades, grab a roadside buggy to rotate, and watch the kill feed. The island has four villages, a military depot, a quarry, farms with silos, watchtowers, lone houses and a lake, all linked by dirt roads.
 
 | Input | Action |
 |---|---|
@@ -22,6 +22,7 @@ From the lobby, customize your character and weapon slots, hit PLAY, and queue i
 | **F** | Jump from the plane · enter / exit a vehicle (prompt appears when close) |
 | **V** | Toggle first / third person — works while parachuting too |
 | **Click** (sniper, scoped) | Fires immediately |
+| **Double-click** (sniper) | Latch the scope — stays on while you shoot; right-click exits |
 | **Hold click** (sniper, hip) | Charge the shot — fires when you release |
 
 ## Project layout
@@ -50,9 +51,11 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 
 ## Features
 
+- Profile screen (click your player icon): pick from eight generated avatar icons or upload your own image, see your level with an escalating points curve (kills, damage and placement earn points each match), and browse your battle log of recent matches
+- Sniper scope lock: double-click to latch the scope and keep firing scoped shots; right-click drops back out (hold right-click still works for quick peeks)
 - PUBG-style lobby inside a private hangar: your character stands full-height on a lit spawn pad; profile card with editable name/level top-left, WARDROBE / LOADOUT / STATISTICS / CONTROLS cards top-right, rotating tips above a big angled gold START; wardrobe and weapon-slot choices persist, and matchmaking runs as a banner before deploying
 
-- Procedural 1.4 km × 1.4 km island with domain-warped ridgelines, crisp dirt roads, sand beaches and a lake; ~50 buildings across eight settlement sites
+- Procedural 2 km × 2 km island with domain-warped ridgelines, crisp dirt roads, sand beaches and a lake; ~63 buildings across eleven settlement sites
 - Building variety: houses, two-storey houses, walk-up apartments with real second floors and outside staircases (bonus loot upstairs), barns, sheds, flat-roof warehouses with roll doors, farm silos and hilltop watchtowers, in six paint palettes
 - Third-person view on V — see your own character (with your actual weapon in hand), over-shoulder camera with collision, automatic during the parachute drop
 - The match opens with a cargo-plane drop; all 39 bots bail out along the flight path under their own canopies

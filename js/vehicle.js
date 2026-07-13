@@ -11,6 +11,9 @@ const VEHICLE_SPOTS = [
   { x: 120,  z: 462,  hex: 0x4a8f8a },
   { x: -492, z: -90,  hex: 0x616a72 },
   { x: 388,  z: -462, hex: 0xa06a3a },
+  { x: -85,  z: 680,  hex: 0x9c5a5a },
+  { x: 690,  z: 112,  hex: 0x5a7d9c },
+  { x: -655, z: -510, hex: 0x6f8f5a },
 ];
 // park each buggy on the shoulder of the nearest road
 function snapToRoad(sp){
@@ -99,7 +102,7 @@ function tryVehicleToggle(){
   const best = nearestVehicle(4.2);
   if(best){
     player.driving = best;
-    player.firing = false; player.aiming = false; player.charging = false;
+    player.firing = false; player.aiming = false; player.charging = false; player.scopeLock = false;
     cancelHeal();
     if(player.holding !== 'gun') holsterItem();
     gunRoot.visible = false;

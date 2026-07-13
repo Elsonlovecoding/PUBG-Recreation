@@ -2,13 +2,13 @@
 // PUBG Recreation — zone, minimap, HUD, career stats, match flow, main loop
 
 // ---------------- shrinking zone ----------------
-const zone = { cx:0, cz:0, r:660, tcx:0, tcz:0, tr:660, scx:0, scz:0, sr:660, phase:0, state:'wait', t:25 };
+const zone = { cx:0, cz:0, r:940, tcx:0, tcz:0, tr:940, scx:0, scz:0, sr:940, phase:0, state:'wait', t:25 };
 const ZONE_PHASES = [
-  { wait:32, shrink:30, mul:0.58 },
-  { wait:22, shrink:24, mul:0.56 },
-  { wait:17, shrink:18, mul:0.54 },
-  { wait:13, shrink:14, mul:0.50 },
-  { wait:10, shrink:11, mul:0.45 },
+  { wait:35, shrink:34, mul:0.56 },
+  { wait:24, shrink:26, mul:0.55 },
+  { wait:18, shrink:20, mul:0.54 },
+  { wait:14, shrink:15, mul:0.50 },
+  { wait:11, shrink:12, mul:0.45 },
   { wait:8,  shrink:9,  mul:0.05 },
 ];
 const zoneWallMat = new THREE.ShaderMaterial({
@@ -32,8 +32,8 @@ const zoneWallMat = new THREE.ShaderMaterial({
   ].join('\n')
 });
 const zoneWall = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 96, 1, true), zoneWallMat);
-zoneWall.scale.set(zone.r, 360, zone.r);
-zoneWall.position.set(0, 170, 0);
+zoneWall.scale.set(zone.r, 380, zone.r);
+zoneWall.position.set(0, 180, 0);
 zoneWall.renderOrder = 5;
 scene.add(zoneWall);
 let zoneTick = 0;
@@ -45,8 +45,8 @@ function updateZone(dt){
       zone.scx = zone.cx; zone.scz = zone.cz; zone.sr = zone.r;
       const nr = Math.max(12, zone.r * P.mul);
       const a = randRange(0, Math.PI*2), off = randRange(0, (zone.r - nr) * 0.8);
-      zone.tcx = clamp(zone.cx + Math.cos(a)*off, -520, 520);
-      zone.tcz = clamp(zone.cz + Math.sin(a)*off, -520, 520);
+      zone.tcx = clamp(zone.cx + Math.cos(a)*off, -760, 760);
+      zone.tcz = clamp(zone.cz + Math.sin(a)*off, -760, 760);
       zone.tr = nr;
       zone.state = 'shrink'; zone.t = P.shrink;
       SFX.zoneSiren();
@@ -61,8 +61,8 @@ function updateZone(dt){
       zone.state = 'wait'; zone.t = ZONE_PHASES[Math.min(zone.phase, ZONE_PHASES.length-1)].wait;
     }
   }
-  zoneWall.scale.set(zone.r, 360, zone.r);
-  zoneWall.position.set(zone.cx, 170, zone.cz);
+  zoneWall.scale.set(zone.r, 380, zone.r);
+  zoneWall.position.set(zone.cx, 180, zone.cz);
   zoneWallMat.uniforms.time.value = performance.now()*0.001;
 
   // zone damage in half-second ticks
@@ -97,7 +97,7 @@ function updateZone(dt){
 const mapCanvas = document.getElementById('minimap');
 const mapCtx = mapCanvas.getContext('2d');
 const MAP_S = 190;
-const MBG = 200;
+const MBG = 220;
 const mapBg = document.createElement('canvas');
 mapBg.width = MBG; mapBg.height = MBG;
 {
@@ -254,6 +254,12 @@ function loadCareer(){
 function saveCareer(c){
   try { localStorage.setItem('pubgrec_stats', JSON.stringify(c)); } catch(e){}
 }
+function levelInfo(points){
+  // level n -> n+1 costs 100 + (n-1)*50 points, so the grind grows each level
+  let lv = 1, need = 100, p = Math.max(0, points || 0);
+  while(p >= need && lv < 999){ p -= need; lv++; need = 100 + (lv - 1) * 50; }
+  return { lv, into: Math.round(p), need };
+}
 function careerLine(){
   const c = loadCareer();
   if(!c.matches) return 'first drop — good luck';
@@ -302,6 +308,7 @@ function endGame(win, killerName){
   gameState.over = true; gameState.playing = false;
   player.firing = false;
   player.aiming = false;
+  player.scopeLock = false;
   setScopeUI(false);
   cancelHeal();
   closeInventory(false);
@@ -335,8 +342,18 @@ function endGame(win, killerName){
   c.kills = (c.kills||0) + player.kills;
   c.bestKills = Math.max(c.bestKills||0, player.kills);
   c.bestPlace = Math.min(c.bestPlace||99, place);
+  // match points: participation + kills + damage + placement bonus
+  const pts = Math.max(5, Math.round(10 + player.kills*20 + matchStats.damage*0.1 +
+    (place === 1 ? 100 : place <= 5 ? 50 : place <= 10 ? 25 : 0)));
+  c.points = (c.points || 0) + pts;
+  c.log = c.log || [];
+  c.log.unshift({ t: Date.now(), place, kills: player.kills, dmg: Math.round(matchStats.damage), pts });
+  c.log = c.log.slice(0, 12);
   saveCareer(c);
-  stats.innerHTML += '<br><span class="career">' + careerLine() + '</span>';
+  const li = levelInfo(c.points);
+  stats.innerHTML += '<br><span class="career">+' + pts + ' PTS &middot; LV ' + li.lv +
+    ' — ' + li.into + ' / ' + li.need + '</span>' +
+    '<br><span class="career">' + careerLine() + '</span>';
   setTimeout(() => {
     end.style.display = 'flex';
     if(document.pointerLockElement) document.exitPointerLock();

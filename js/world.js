@@ -10,7 +10,7 @@ const waterMat = new THREE.ShaderMaterial({
     deep:     { value: new THREE.Color(0x1d4a63) },
     shallow:  { value: new THREE.Color(0x2f6f8d) },
     fogColor: { value: new THREE.Color(SKY_HORIZON) },
-    fogNear:  { value: 100 }, fogFar: { value: 640 },
+    fogNear:  { value: 110 }, fogFar: { value: 760 },
   },
   vertexShader: [
     'uniform float time;',
@@ -43,7 +43,7 @@ const waterMat = new THREE.ShaderMaterial({
     '}'
   ].join('\n')
 });
-const water = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000, 96, 96), waterMat);
+const water = new THREE.Mesh(new THREE.PlaneGeometry(6600, 6600, 96, 96), waterMat);
 water.rotation.x = -Math.PI/2; water.position.y = -2.3;
 scene.add(water);
 
@@ -84,10 +84,10 @@ function xform(g, x,y,z, ry, sx,sy,sz){
 // horizon mountains ring (outside playable map, mostly silhouettes in the fog)
 {
   const mg = [];
-  for(let i=0;i<26;i++){
-    const a = (i/26)*Math.PI*2 + randRange(-0.10,0.10);
-    const rad = randRange(880, 1150);
-    const w = randRange(85,165), h = randRange(70,200);
+  for(let i=0;i<28;i++){
+    const a = (i/28)*Math.PI*2 + randRange(-0.10,0.10);
+    const rad = randRange(1180, 1520);
+    const w = randRange(110,210), h = randRange(90,260);
     const col = new THREE.Color().setHSL(0.33+randRange(-0.04,0.07), 0.26, 0.33+randRange(-0.05,0.06));
     mg.push(xform(tintGeo(new THREE.ConeGeometry(w, h, 5+Math.floor(Math.random()*3)), col.getHex()),
       Math.cos(a)*rad, h/2-6, Math.sin(a)*rad, randRange(0,Math.PI)));
@@ -98,8 +98,8 @@ function xform(g, x,y,z, ry, sx,sy,sz){
 // clouds
 const clouds = new THREE.Mesh((()=> {
   const cg = [];
-  for(let i=0;i<26;i++){
-    const cx = randRange(-660,660), cz = randRange(-660,660), cy = randRange(145,215);
+  for(let i=0;i<34;i++){
+    const cx = randRange(-940,940), cz = randRange(-940,940), cy = randRange(150,225);
     const puffs = 3+Math.floor(Math.random()*3);
     for(let k=0;k<puffs;k++){
       cg.push(xform(tintGeo(new THREE.IcosahedronGeometry(randRange(10,19),0), 0xffffff),
@@ -130,7 +130,7 @@ function slopeAt(x,z){
   return Math.hypot(heightAt(x+e,z)-heightAt(x-e,z), heightAt(x,z+e)-heightAt(x,z-e))/(2*e);
 }
 function goodScatterSpot(x, z, roadPad, bldPad){
-  if(Math.max(Math.abs(x),Math.abs(z)) > 660) return false;
+  if(Math.max(Math.abs(x),Math.abs(z)) > 940) return false;
   if(insideBuilding(x, z, bldPad)) return false;
   if(roadFactorGen(x,z) > roadPad) return false;
   return true;
@@ -141,8 +141,8 @@ const treeSpots = [];
 {
   const tg = [];
   let placed = 0, guard = 0;
-  while(placed < 900 && guard++ < 40000){
-    const x = randRange(-660,660), z = randRange(-660,660);
+  while(placed < 1500 && guard++ < 70000){
+    const x = randRange(-940,940), z = randRange(-940,940);
     if(!goodScatterSpot(x,z,0.03,4.5) || slopeAt(x,z) > 0.62) continue;
     if(heightAt(x,z) < -0.6) continue;                        // not on beaches or in the lake
     const y = heightAt(x,z), s = randRange(0.85,1.7), ry = randRange(0,Math.PI*2);
@@ -166,8 +166,8 @@ const treeSpots = [];
 {
   const rg = [];
   let placed = 0, guard = 0;
-  while(placed < 200 && guard++ < 18000){
-    const x = randRange(-660,660), z = randRange(-660,660);
+  while(placed < 300 && guard++ < 30000){
+    const x = randRange(-940,940), z = randRange(-940,940);
     if(!goodScatterSpot(x,z,0.05,3)) continue;
     const y = heightAt(x,z), r = randRange(0.5,1.9);
     const g = new THREE.IcosahedronGeometry(r, 0);
@@ -188,8 +188,8 @@ const treeSpots = [];
 {
   const gg = [];
   let placed = 0, guard = 0;
-  while(placed < 2800 && guard++ < 42000){
-    const x = randRange(-660,660), z = randRange(-660,660);
+  while(placed < 3800 && guard++ < 60000){
+    const x = randRange(-940,940), z = randRange(-940,940);
     if(!goodScatterSpot(x,z,0.04,2) || heightAt(x,z) < -0.4) continue;
     const y = heightAt(x,z);
     const gcol = new THREE.Color().setHSL(0.21+randRange(-0.03,0.05), 0.46, 0.40+randRange(-0.05,0.07));

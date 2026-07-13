@@ -18,6 +18,7 @@ const player = {
   healing: 0,
   holding: 'gun',            // 'gun' | 'medkit' | 'frag' | 'smoke'
   charging: false,           // sniper: fire on release
+  scopeLock: false,          // sniper: double-click latches the scope until right-click
   driving: null,             // vehicle ref while behind the wheel
   dropState: 'none',         // 'none' | 'plane' | 'free' | 'chute'
 };
@@ -98,6 +99,7 @@ function setWeapon(type){
   if(!player.owned[type]) return;
   if(player.holding !== 'gun') holsterItem();
   player.weapon = type;
+  player.scopeLock = false;
   gunRoot.remove(currentGunMesh);
   currentGunMesh = gunModels[type];
   gunRoot.add(currentGunMesh);
@@ -223,7 +225,14 @@ document.addEventListener('mousedown', e => {
     }
     player.firing = true; player.fireLatch = false;
   }
-  else if(e.button === 2 && player.holding === 'gun') player.aiming = true;
+  else if(e.button === 2 && player.holding === 'gun'){
+    if(player.scopeLock){ player.scopeLock = false; player.aiming = false; return; }   // right-click drops the latch
+    player.aiming = true;
+  }
+});
+document.addEventListener('dblclick', () => {
+  if(!gameState.playing || !player.alive || inventoryOpen || player.driving || player.dropState !== 'none') return;
+  if(player.weapon === 'sniper' && player.holding === 'gun') player.scopeLock = true;   // stay scoped
 });
 document.addEventListener('mouseup', e => {
   if(e.button === 0){
@@ -251,6 +260,11 @@ function updatePlayer(dt){
   if(!player.alive || player.driving || player.dropState !== 'none') return;
   rig.rotation.y = player.yaw;
   pitchPivot.rotation.x = player.pitch;
+
+  if(player.scopeLock){
+    if(player.weapon === 'sniper' && player.holding === 'gun') player.aiming = true;    // latch holds the scope
+    else player.scopeLock = false;
+  }
 
   const sprint = keys.ShiftLeft || keys.ShiftRight;
   let ix = 0, iz = 0;

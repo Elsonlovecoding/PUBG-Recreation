@@ -2,7 +2,7 @@
 // PUBG Recreation — the plane drop: cargo plane, freefall, parachutes (bots too)
 
 let dropActive = false, dropEnded = false, planeT = 0, dropWasOver = false;
-const PLANE_Y = 260, PLANE_SPEED = 72;
+const PLANE_Y = 280, PLANE_SPEED = 88;
 const dropPath = { sx:0, sz:0, ex:0, ez:0, dur: 1 };
 
 const plane = (function(){
@@ -43,11 +43,11 @@ function startDrop(){
   dropActive = true; dropEnded = false; planeT = 0; dropWasOver = false;
   const a = randRange(0, Math.PI*2);
   const dx = Math.cos(a), dz = Math.sin(a);
-  const off = randRange(-200, 200);
+  const off = randRange(-300, 300);
   const cx = -dz*off, cz = dx*off;                     // perpendicular offset through the middle
-  dropPath.sx = cx - dx*1100; dropPath.sz = cz - dz*1100;
-  dropPath.ex = cx + dx*1100; dropPath.ez = cz + dz*1100;
-  dropPath.dur = 2200 / PLANE_SPEED;
+  dropPath.sx = cx - dx*1500; dropPath.sz = cz - dz*1500;
+  dropPath.ex = cx + dx*1500; dropPath.ez = cz + dz*1500;
+  dropPath.dur = 3000 / PLANE_SPEED;
   plane.visible = true;
   plane.rotation.y = Math.atan2(dx, dz);
   player.dropState = 'plane';
@@ -59,7 +59,7 @@ function startDrop(){
     b.active = false;
     b.group.visible = false;
     const px = b.landing.x - dropPath.sx, pz = b.landing.z - dropPath.sz;
-    const along = clamp((px*dx + pz*dz) / 2200, 0.08, 0.94);
+    const along = clamp((px*dx + pz*dz) / 3000, 0.08, 0.94);
     b.jumpAt = along * dropPath.dur + randRange(-0.8, 0.8);
     b.dropY = PLANE_Y + randRange(-2, 2);
     b.dropping = false;
@@ -69,7 +69,7 @@ function planePos(t){
   const f = clamp(t / dropPath.dur, 0, 1);
   return { x: lerp(dropPath.sx, dropPath.ex, f), z: lerp(dropPath.sz, dropPath.ez, f) };
 }
-function overIsland(pp){ return Math.max(Math.abs(pp.x), Math.abs(pp.z)) < 610; }
+function overIsland(pp){ return Math.max(Math.abs(pp.x), Math.abs(pp.z)) < 880; }
 function jumpFromPlane(){
   if(player.dropState !== 'plane') return;
   const pp = planePos(planeT);
@@ -116,7 +116,7 @@ function updateDrop(dt){
     if((dropWasOver && !over) || planeT >= dropPath.dur - 1){
       dropWasOver = true;                          // force the exit at the last chance
       const forced = planePos(Math.min(planeT, dropPath.dur - 1));
-      player.pos.set(clamp(forced.x, -600, 600), PLANE_Y - 4, clamp(forced.z, -600, 600));
+      player.pos.set(clamp(forced.x, -860, 860), PLANE_Y - 4, clamp(forced.z, -860, 860));
       player.vel.set(0, 0, 0);
       player.dropState = 'free';
       thirdPrefBeforeDrop = thirdPerson;
