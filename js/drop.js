@@ -5,23 +5,49 @@ let dropActive = false, dropEnded = false, planeT = 0, dropWasOver = false;
 const PLANE_Y = 280, PLANE_SPEED = 100;
 const dropPath = { sx:0, sz:0, ex:0, ez:0, dur: 1 };
 
+// C-130-style military transport: tube fuselage, high wing, four turboprops, T-ish tail
+const planeProps = [];
 const plane = (function(){
   const g = new THREE.Group();
-  const fus = new THREE.MeshStandardMaterial({ color:0x5f6d64, flatShading:true, roughness:0.8 });
-  const dk  = new THREE.MeshStandardMaterial({ color:0x39413c, flatShading:true, roughness:0.8 });
-  function part(geo, mat, x,y,z){
+  const fus  = new THREE.MeshStandardMaterial({ color:0x7e858a, flatShading:true, roughness:0.55, metalness:0.25 });
+  const belly= new THREE.MeshStandardMaterial({ color:0x9aa1a4, flatShading:true, roughness:0.6, metalness:0.2 });
+  const dk   = new THREE.MeshStandardMaterial({ color:0x2b3035, flatShading:true, roughness:0.8 });
+  const acc  = new THREE.MeshStandardMaterial({ color:0x8f2f2a, flatShading:true, roughness:0.7 });
+  function part(geo, mat, x,y,z, rx,ry,rz){
     const m = new THREE.Mesh(geo, mat);
-    m.position.set(x,y,z); g.add(m); return m;
+    m.position.set(x,y,z); m.rotation.set(rx||0, ry||0, rz||0);
+    g.add(m); return m;
   }
-  part(new THREE.BoxGeometry(3.2, 3.0, 17), fus, 0, 0, 0);                 // fuselage
-  part(new THREE.BoxGeometry(2.6, 1.4, 3), dk, 0, 0.9, 7.6);               // nose/cockpit
-  part(new THREE.BoxGeometry(19, 0.35, 3.4), fus, 0, 1.2, 1.5);            // wings
-  part(new THREE.BoxGeometry(0.35, 3.0, 2.6), fus, 0, 2.2, -7.6);          // tail fin
-  part(new THREE.BoxGeometry(7, 0.3, 2), fus, 0, 1.6, -7.4);               // tailplane
-  for(const sx of [-1, 1]){
-    part(new THREE.CylinderGeometry(0.5, 0.5, 2.4, 8), dk, sx*5.2, 0.6, 2.2).rotation.x = Math.PI/2;
-    part(new THREE.CylinderGeometry(0.5, 0.5, 2.4, 8), dk, sx*9.0, 0.6, 2.0).rotation.x = Math.PI/2;
+  // fuselage: main tube, tapered nose with cap, upswept tail cone
+  part(new THREE.CylinderGeometry(1.6, 1.6, 11.5, 12), fus, 0, 0, 0.6, Math.PI/2);
+  part(new THREE.CylinderGeometry(1.6, 1.0, 3.6, 12), fus, 0, 0.10, 8.1, Math.PI/2);
+  part(new THREE.SphereGeometry(1.02, 10, 8), fus, 0, 0.10, 9.85);
+  part(new THREE.CylinderGeometry(1.6, 0.55, 6.4, 12), fus, 0, 0.62, -8.2, Math.PI/2 - 0.15);
+  // belly pods (landing-gear fairings) + cockpit glass band
+  part(new THREE.BoxGeometry(0.62, 0.85, 4.6), belly, -1.62, -0.72, 1.2);
+  part(new THREE.BoxGeometry(0.62, 0.85, 4.6), belly,  1.62, -0.72, 1.2);
+  part(new THREE.BoxGeometry(1.9, 0.55, 1.15), dk, 0, 0.92, 7.55, -0.22);
+  // high straight wing with red wingtips
+  part(new THREE.BoxGeometry(24, 0.36, 3.6), fus, 0, 1.42, 1.5);
+  part(new THREE.BoxGeometry(1.3, 0.40, 3.62), acc, -11.4, 1.42, 1.5);
+  part(new THREE.BoxGeometry(1.3, 0.40, 3.62), acc,  11.4, 1.42, 1.5);
+  // four turboprop nacelles with spinning two-blade props
+  for(const sx of [-8.3, -4.5, 4.5, 8.3]){
+    part(new THREE.CylinderGeometry(0.52, 0.60, 2.7, 8), dk, sx, 0.95, 2.55, Math.PI/2);
+    const prop = new THREE.Group();
+    prop.position.set(sx, 0.95, 3.98);
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.17, 3.1, 0.07), dk);
+    const blade2 = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.17, 0.07), dk);
+    const spinner = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.55, 8), belly);
+    spinner.rotation.x = Math.PI/2; spinner.position.z = 0.2;
+    prop.add(blade); prop.add(blade2); prop.add(spinner);
+    g.add(prop);
+    planeProps.push(prop);
   }
+  // tail: swept fin with red top band + high tailplane
+  part(new THREE.BoxGeometry(0.34, 4.6, 2.7), fus, 0, 2.6, -10.3, 0.30);
+  part(new THREE.BoxGeometry(0.38, 0.9, 2.75), acc, 0, 4.72, -10.95, 0.30);
+  part(new THREE.BoxGeometry(9.0, 0.26, 2.3), fus, 0, 4.35, -11.2);
   g.visible = false;
   scene.add(g);
   return g;
@@ -99,6 +125,7 @@ function updateDrop(dt){
   const planeDone = planeT >= dropPath.dur;
   if(!planeDone){
     plane.position.set(pp.x, PLANE_Y, pp.z);
+    for(const pr of planeProps) pr.rotation.z += dt*36;          // props spin
     SFX.setPlane(Math.hypot(pp.x - rig.position.x, pp.z - rig.position.z));
   } else if(plane.visible){
     plane.visible = false;

@@ -66,13 +66,13 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 - Real roads: asphalt-colored paved avenues and arterials with worn dirt shoulders link the city, villages and depot, while farm tracks stay dirt — and buggies park along both
 - Building variety: houses, two-storey houses, walk-up apartments with real second floors and outside staircases (bonus loot upstairs), barns, sheds, flat-roof warehouses with roll doors, farm silos and hilltop watchtowers, in six paint palettes (plus two concrete facades for the towers)
 - Third-person view on V — see your own character (with your actual weapon in hand), over-shoulder camera with collision, automatic during the parachute drop
-- The match opens with a cargo-plane drop; all 39 bots bail out along the flight path under their own canopies
+- The match opens with a cargo-plane drop from a C-130-style transport — tube fuselage, high wing, four spinning turboprops and a red-banded tail; all 39 bots bail out along the flight path under their own canopies
 - Steerable skydive: WASD steers the freefall and the canopy — lean into a direction to glide (slower fall, real horizontal reach) or keep your hands off to plummet straight down, so you genuinely pick your landing spot
 - Full procedural soundscape (Web Audio, no files): panned distance-muffled gunshots, footsteps, reloads, explosions, sirens, engine/plane/freefall loops
 - Loot with typed ammo — 5.56 for the rifle, 12-gauge shells, 7.62 for the sniper — plus armor vests, medkits, frag and smoke grenades, all as recognizable 3D models
 - Real smoke: soft round sprite clouds ~18 m across that sit where they land for 20 seconds and genuinely blind bots (inside or through)
 - Three armor pieces — shirt armor, helmet, boots — in three levels each, found only as loot (you start with none); higher-level pieces replace lower ones, total damage reduction reaches 35%, the E-inventory lists your equipment, and an equipped helmet shows on your character; bots' visible helmets and vests grant them the same protection
-- Thirteen buggies parked along the roads (two in the city) with a PUBG-style "F — DRIVE" prompt, slope physics, run-overs and explosive wrecks — rebuilt with roll cages, seats, steering wheel, headlights, door panels, spare wheel and hub-detailed rolling wheels
+- Thirteen buggies parked along the roads (two in the city) with a PUBG-style "F — DRIVE" prompt, slope physics and explosive wrecks — rebuilt with roll cages, seats, steering wheel, headlights, door panels, spare wheel and hub-detailed rolling wheels; run-overs are lethal (even a max-armor fighter dies under your wheels at speed)
 - Characters carry baked shading (sky-lit from above, shaded feet), chest rigs, belt pouches and knee pads over their gear
 - 39 bots that hear gunfire, hunt attackers, loot crates, heal behind cover, throw grenades, and rotate to the next zone circle early
 - Sniper: click fires instantly when scoped; from the hip, hold and release for a deliberate shot

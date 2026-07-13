@@ -229,16 +229,18 @@ function updateVehicles(dt){
         v.wheels[i].rotation.x += v.speed*dt*2.4;
         if(i < 2) v.wheels[i].rotation.y = v.steer*0.4;          // front pair steers
       }
-      // run over bots
+      // run over bots — getting hit by a vehicle is lethal or close to it
       v.runoverCd -= dt;
-      if(Math.abs(v.speed) > 6 && v.runoverCd <= 0){
+      if(Math.abs(v.speed) > 4.5 && v.runoverCd <= 0){
         for(const b of bots){
           if(!b.alive || !b.active) continue;
           const bp = b.group.position;
           if(Math.hypot(bp.x-p.x, bp.z-p.z) < 2.1){
-            damageBot(b, 120, 'You', 'player');
+            // overwhelms armor: even a max-geared bot dies above ~7 m/s, and a slow
+            // bump still takes almost all of their health
+            damageBot(b, 150 + Math.abs(v.speed)*9, 'You', 'player');
             v.runoverCd = 0.4;
-            v.speed *= 0.8;
+            v.speed *= 0.82;
           }
         }
       }

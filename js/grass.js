@@ -29,7 +29,7 @@ const GRASS = (function(){
 
   // crossed-quad clump (two planes at 90°), roots at y=0
   const geo = (() => {
-    const w = 1.05, h = 0.58, hw = w/2;
+    const w = 1.05, h = 0.46, hw = w/2;
     const pos = [], nor = [], uv = [], idx = [];
     let vi = 0;
     const quad = (ax, az, bx, bz) => {
@@ -85,7 +85,7 @@ const GRASS = (function(){
         continue;
       }
       dummy.position.set(x, h, z);
-      dummy.scale.setScalar(0.68 + rand()*0.62);
+      dummy.scale.setScalar(0.64 + rand()*0.52);
       dummy.rotation.y = rand()*Math.PI*2;
       dummy.updateMatrix();
       mesh.setMatrixAt(idx2, dummy.matrix);
