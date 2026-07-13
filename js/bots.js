@@ -263,7 +263,7 @@ function updateBot(b, dt){
     const ease = 1 - (1-fall)*(1-fall);
     b.group.rotation.x = b.fallAxis.x * ease * Math.PI/2;
     b.group.rotation.z = b.fallAxis.z * ease * Math.PI/2;
-    b.group.position.y = groundAt(p.x,p.z) + 0.28*ease;
+    b.group.position.y = groundAt(p.x, p.z, p.y + 0.1) + 0.28*ease;   // settle on the storey it died on
     b.armL.rotation.x = ease * b.fallAxis.f1; b.armR.rotation.x = ease * b.fallAxis.f2;
     b.legL.rotation.x = ease * b.fallAxis.f3; b.legR.rotation.x = ease * b.fallAxis.f4;
     if(b.deathT > 1.1){

@@ -351,16 +351,14 @@ function makeBuilding(b, idx){
   // roofs
   if(style === 'flat' || style === 'warehouse' || style === 'tower'){
     const pH = style === 'tower' ? 0.9 : 0.55;                    // towers get a taller parapet
-    bBox(b.w+1.3, 0.3, b.d+1.3, b.x, fy+H+0.15, b.z, P.roof, false);
+    if(style !== 'tower')                                         // tower roof is built with its stairwell opening below
+      bBox(b.w+1.3, 0.3, b.d+1.3, b.x, fy+H+0.15, b.z, P.roof, false);
     bBox(b.w+1.3, pH, 0.3, b.x, fy+H+0.3+pH/2, b.z-(b.d+1.0)/2, P.roof, false);
     bBox(b.w+1.3, pH, 0.3, b.x, fy+H+0.3+pH/2, b.z+(b.d+1.0)/2, P.roof, false);
     bBox(0.3, pH, b.d+1.3, b.x-(b.w+1.0)/2, fy+H+0.3+pH/2, b.z, P.roof, false);
     bBox(0.3, pH, b.d+1.3, b.x+(b.w+1.0)/2, fy+H+0.3+pH/2, b.z, P.roof, false);
     if(style === 'tower'){
-      // rooftop stairhouse + service unit give the skyline a silhouette
-      bBox(3.4, 2.4, 2.7, b.x - b.w*0.16, fy+H+1.5, b.z + b.d*0.08, P.trim, false);
-      bBox(3.7, 0.26, 3.0, b.x - b.w*0.16, fy+H+2.83, b.z + b.d*0.08, P.roof, false);
-      bBox(1.5, 1.0, 1.5, b.x + b.w*0.26, fy+H+0.8, b.z - b.d*0.22, P.roof, false);
+      bBox(1.5, 1.0, 1.5, b.x + b.w*0.26, fy+H+0.8, b.z - b.d*0.22, P.roof, false);   // rooftop service unit
     }
   } else if(style === 'shed'){
     const ang = Math.atan2(1.1, b.d);
@@ -375,6 +373,50 @@ function makeBuilding(b, idx){
     cone.scale(b.w+1.9, roofH, b.d+1.9);
     bldGeoms.push(xform(tintGeo(cone, P.roof), b.x, fy+H+roofH/2, b.z, 0));
     if(style !== 'barn') bBox(0.7, 1.5, 0.7, b.x+b.w*0.28, fy+H+roofH*0.55, b.z, P.trim, false);
+  }
+  if(style === 'tower'){
+    // real interior: a concrete storey every 3m, scissor stairs along the N/S walls, all the way to the roof
+    const S = 3.0, nF = Math.round(H / S);
+    const wi = b.w - 0.9, di = b.d - 0.9;                          // interior extents inside the walls
+    const xe = wi/2 - 1.35, run = 5.6, chW = 1.3, stepN = 8, strip = chW + 0.3;
+    const slabTop = (x0, x1, z0, z1, cy, th, col) => {             // slab piece + matching walkable floor
+      if(x1 - x0 < 0.05 || z1 - z0 < 0.05) return;
+      bBox(x1 - x0, th, z1 - z0, b.x + (x0 + x1)/2, cy, b.z + (z0 + z1)/2, col, false);
+      floors.push({ minX: b.x + x0, maxX: b.x + x1, minZ: b.z + z0, maxZ: b.z + z1, top: cy + th/2 });
+    };
+    for(let k = 1; k <= nF; k++){
+      const toRoof = k === nF;                                     // the last flight climbs out onto the roof
+      const yLo = fy + (k - 1)*S;
+      const yHi = toRoof ? fy + H + 0.3 : fy + k*S;
+      const sz = (k % 2) ? 1 : -1, xd = (k % 2) ? 1 : -1;          // which wall the flight hugs + run direction
+      const zc = sz*(di/2 - chW/2);
+      for(let i = 0; i < stepN; i++){
+        const ty = yLo + (i + 1)*(yHi - yLo)/stepN;
+        const sx2 = xd*(xe - run + (i + 0.5)*run/stepN);
+        bBox(0.80, 0.15, chW, b.x + sx2, ty - 0.075, b.z + zc, 0x6f757c, false);
+        floors.push({ minX: b.x + sx2 - 0.40, maxX: b.x + sx2 + 0.40,
+                      minZ: b.z + zc - chW/2, maxZ: b.z + zc + chW/2, top: ty });
+      }
+      const o0 = xd > 0 ? xe - 4.0 : -xe - 0.4;                    // stairwell opening in the floor above
+      const o1 = xd > 0 ? xe + 0.4 : -xe + 4.0;
+      if(toRoof){
+        const xR = (b.w + 1.3)/2, zR = (b.d + 1.3)/2;
+        const zs0 = sz > 0 ? di/2 - strip : -zR, zs1 = sz > 0 ? zR : -di/2 + strip;
+        slabTop(-xR, xR, sz > 0 ? -zR : zs1, sz > 0 ? zs0 : zR, fy + H + 0.15, 0.3, P.roof);
+        slabTop(-xR, o0, zs0, zs1, fy + H + 0.15, 0.3, P.roof);
+        slabTop(o1, xR, zs0, zs1, fy + H + 0.15, 0.3, P.roof);
+        // stairhouse sealing the roof exit, open toward the roof
+        const shX = (o0 + o1)/2, shW = o1 - o0 + 0.6;
+        bBox(shW, 0.2, 2.9, b.x + shX, yHi + 2.18, b.z + zc + sz*0.30, P.trim, false);
+        bBox(shW, 2.1, 0.22, b.x + shX, yHi + 1.05, b.z + zc - sz*(strip/2 + 0.24), P.trim, true);
+        bBox(shW, 2.1, 0.22, b.x + shX, yHi + 1.05, b.z + sz*(zR - 0.12), P.trim, true);
+        bBox(0.22, 2.1, strip + 0.7, b.x + (xd > 0 ? o1 + 0.2 : o0 - 0.2), yHi + 1.05, b.z + zc, P.trim, true);
+      } else {
+        slabTop(-wi/2, wi/2, sz > 0 ? -di/2 : -di/2 + strip, sz > 0 ? di/2 - strip : di/2, yHi - 0.11, 0.22, 0x90959b);
+        slabTop(-wi/2, o0, sz > 0 ? di/2 - strip : -di/2, sz > 0 ? di/2 : -di/2 + strip, yHi - 0.11, 0.22, 0x90959b);
+        slabTop(o1, wi/2, sz > 0 ? di/2 - strip : -di/2, sz > 0 ? di/2 : -di/2 + strip, yHi - 0.11, 0.22, 0x90959b);
+      }
+    }
   }
 }
 buildings.forEach((b,i) => makeBuilding(b,i));

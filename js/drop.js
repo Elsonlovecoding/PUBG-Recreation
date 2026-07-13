@@ -80,6 +80,7 @@ function jumpFromPlane(){
   thirdPrefBeforeDrop = thirdPerson;
   setThirdPerson(true);                        // PUBG-style: watch yourself dive
   document.getElementById('dropmsg').style.display = 'none';
+  showToast('STEER WITH WASD TO PICK YOUR SPOT');
   SFX.click();
 }
 function finishPlayerLanding(){
@@ -134,17 +135,19 @@ function updateDrop(dt){
       ix *= inv; iz *= inv;
       const sin = Math.sin(player.yaw), cos = Math.cos(player.yaw);
       const ax = (ix*cos + iz*sin), az = (-ix*sin + iz*cos);
-      const ctrl = chute ? 10 : 16;
-      player.vel.x = clamp(player.vel.x + ax*20*dt, -ctrl, ctrl);
-      player.vel.z = clamp(player.vel.z + az*20*dt, -ctrl, ctrl);
+      const ctrl = chute ? 15 : 30;
+      const acc = chute ? 26 : 34;
+      player.vel.x = clamp(player.vel.x + ax*acc*dt, -ctrl, ctrl);
+      player.vel.z = clamp(player.vel.z + az*acc*dt, -ctrl, ctrl);
     } else {
       player.vel.x *= (1 - dt*0.8);
       player.vel.z *= (1 - dt*0.8);
     }
-    const targetVy = chute ? -6.5 : -38;
+    // lean on the keys to glide (slower fall, real reach), hands off to plummet
+    const targetVy = chute ? -6.0 : ((ix || iz) ? -30 : -42);
     player.vel.y = lerp(player.vel.y, targetVy, Math.min(1, dt*(chute ? 3.2 : 1.4)));
-    player.pos.x = clamp(player.pos.x + player.vel.x*dt, -HALF+6, HALF-6);
-    player.pos.z = clamp(player.pos.z + player.vel.z*dt, -HALF+6, HALF-6);
+    player.pos.x = clamp(player.pos.x + player.vel.x*dt, -1140, 1140);   // stay inside the surf line
+    player.pos.z = clamp(player.pos.z + player.vel.z*dt, -1140, 1140);
     player.pos.y += player.vel.y*dt;
     SFX.setFall(Math.abs(player.vel.y) + Math.hypot(player.vel.x, player.vel.z)*0.3);
     const g = groundAt(player.pos.x, player.pos.z, player.pos.y);

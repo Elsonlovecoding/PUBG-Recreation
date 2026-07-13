@@ -292,4 +292,14 @@ buildings.forEach((b) => {
     const ux = b.x + randRange(-b.w*0.15, b.w*0.15), uz = b.z + randRange(-b.d*0.15, b.d*0.15);
     placeCrate(ux, b.baseH + 0.34 + 3.0 + 0.11, uz, ['vest','ammo_sniper','helmet','frag'][crateIdx % 4]);
   }
+  if(b.style === 'tower'){
+    // climbing the tower pays off: crates on two storeys plus a prize on the roof
+    const nF = Math.round(b.h / 3);
+    for(const k of [2, nF - 1]){
+      const ux = b.x + randRange(-b.w*0.14, b.w*0.14), uz = b.z + randRange(-b.d*0.10, b.d*0.10);
+      placeCrate(ux, b.baseH + 0.34 + k*3.0 + 0.11, uz, CRATE_LOOT[crateIdx++ % CRATE_LOOT.length]);
+    }
+    placeCrate(b.x + b.w*0.10, b.baseH + 0.34 + b.h + 0.3, b.z - b.d*0.05,
+      ['sniper','ammo_sniper','helmet','vest'][crateIdx % 4]);
+  }
 });

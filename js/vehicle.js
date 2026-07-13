@@ -93,7 +93,7 @@ function tryVehicleToggle(){
     const v = player.driving;
     const ox = v.group.position.x + Math.cos(v.yaw)* -2.4;
     const oz = v.group.position.z + Math.sin(v.yaw)* 2.4;
-    player.pos.set(ox, groundAt(ox, oz), oz);
+    player.pos.set(ox, groundAt(ox, oz, v.group.position.y + 0.5), oz);
     player.vel.set(0,0,0);
     player.driving = null;
     gunRoot.visible = true;
@@ -171,10 +171,10 @@ function updateVehicles(dt){
       if(g < -1.9) v.speed *= (1 - dt*2);                        // wading slows you down
       // align to the slope
       const e = 1.6;
-      const pitch = Math.atan2(groundAt(p.x - Math.sin(v.yaw)*e, p.z - Math.cos(v.yaw)*e) -
-                               groundAt(p.x + Math.sin(v.yaw)*e, p.z + Math.cos(v.yaw)*e), e*2);
-      const roll  = Math.atan2(groundAt(p.x + Math.cos(v.yaw)*e, p.z - Math.sin(v.yaw)*e) -
-                               groundAt(p.x - Math.cos(v.yaw)*e, p.z + Math.sin(v.yaw)*e), e*2);
+      const pitch = Math.atan2(groundAt(p.x - Math.sin(v.yaw)*e, p.z - Math.cos(v.yaw)*e, p.y + 0.4) -
+                               groundAt(p.x + Math.sin(v.yaw)*e, p.z + Math.cos(v.yaw)*e, p.y + 0.4), e*2);
+      const roll  = Math.atan2(groundAt(p.x + Math.cos(v.yaw)*e, p.z - Math.sin(v.yaw)*e, p.y + 0.4) -
+                               groundAt(p.x - Math.cos(v.yaw)*e, p.z + Math.sin(v.yaw)*e, p.y + 0.4), e*2);
       v.group.rotation.set(pitch, v.yaw, roll);
       // wheels
       for(let i=0;i<4;i++){

@@ -19,7 +19,7 @@ const player = {
   healing: 0,
   holding: 'gun',            // 'gun' | 'medkit' | 'frag' | 'smoke'
   charging: false,           // sniper: fire on release
-  scopeLock: false,          // sniper: double-click latches the scope until right-click
+  scopeLock: false,          // sniper: double-click latches the scope, double-click again to drop it
   driving: null,             // vehicle ref while behind the wheel
   dropState: 'none',         // 'none' | 'plane' | 'free' | 'chute'
 };
@@ -227,13 +227,14 @@ document.addEventListener('mousedown', e => {
     player.firing = true; player.fireLatch = false;
   }
   else if(e.button === 2 && player.holding === 'gun'){
-    if(player.scopeLock){ player.scopeLock = false; player.aiming = false; return; }   // right-click drops the latch
     player.aiming = true;
   }
 });
 document.addEventListener('dblclick', () => {
   if(!gameState.playing || !player.alive || inventoryOpen || player.driving || player.dropState !== 'none') return;
-  if(player.weapon === 'sniper' && player.holding === 'gun') player.scopeLock = true;   // stay scoped
+  if(player.weapon !== 'sniper' || player.holding !== 'gun') return;
+  player.scopeLock = !player.scopeLock;                 // double-click toggles the scope latch
+  if(!player.scopeLock){ player.aiming = false; player.charging = false; }
 });
 document.addEventListener('mouseup', e => {
   if(e.button === 0){

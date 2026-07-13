@@ -22,7 +22,7 @@ From the lobby, customize your character and weapon slots, hit PLAY, and queue i
 | **F** | Jump from the plane · enter / exit a vehicle (prompt appears when close) |
 | **V** | Toggle first / third person — works while parachuting too |
 | **Click** (sniper, scoped) | Fires immediately |
-| **Double-click** (sniper) | Latch the scope — stays on while you shoot; right-click exits |
+| **Double-click** (sniper) | Toggle the scope — stays on while you shoot; double-click again to drop it |
 | **Hold click** (sniper, hip) | Charge the shot — fires when you release |
 
 ## Project layout
@@ -52,15 +52,17 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 ## Features
 
 - Profile screen (click your player icon): pick from eight generated avatar icons or upload your own image, see your level with an escalating points curve (kills, damage and placement earn points each match), and browse your battle log of recent matches
-- Sniper scope lock: double-click to latch the scope and keep firing scoped shots; right-click drops back out (hold right-click still works for quick peeks)
+- Sniper scope lock: double-click to latch the scope and keep firing scoped shots; double-click again to drop back out (hold right-click still works for quick peeks)
 - PUBG-style lobby inside a private hangar: your character stands full-height on a lit spawn pad; profile card with editable name/level top-left, WARDROBE / LOADOUT / STATISTICS / CONTROLS cards top-right, rotating tips above a big angled gold START; wardrobe and weapon-slot choices persist, and matchmaking runs as a banner before deploying
 
 - Procedural 2.5 km × 2.5 km island with domain-warped ridgelines, three real fBm-shaped mountains that rise past 150 m into bare rock and snowcaps (trees stop at the treeline), sand beaches and a lake; ~76 buildings across twelve settlement sites
-- Karona City: four concrete high-rise towers (15–24 m, full window grids, parapets and rooftop stairhouses) plus apartments, a warehouse and houses on a paved street grid
+- Karona City: four concrete high-rise towers (15–24 m, full window grids and parapets) plus apartments, a warehouse and houses on a paved street grid
+- Tower interiors are real: a concrete storey every 3 m linked by scissor staircases, loot crates on two floors, and a final flight through a rooftop stairhouse onto the roof — a sniper prize crate waits up there behind the parapet
 - Real roads: asphalt-colored paved avenues and arterials with worn dirt shoulders link the city, villages and depot, while farm tracks stay dirt — and buggies park along both
 - Building variety: houses, two-storey houses, walk-up apartments with real second floors and outside staircases (bonus loot upstairs), barns, sheds, flat-roof warehouses with roll doors, farm silos and hilltop watchtowers, in six paint palettes (plus two concrete facades for the towers)
 - Third-person view on V — see your own character (with your actual weapon in hand), over-shoulder camera with collision, automatic during the parachute drop
 - The match opens with a cargo-plane drop; all 39 bots bail out along the flight path under their own canopies
+- Steerable skydive: WASD steers the freefall and the canopy — lean into a direction to glide (slower fall, real horizontal reach) or keep your hands off to plummet straight down, so you genuinely pick your landing spot
 - Full procedural soundscape (Web Audio, no files): panned distance-muffled gunshots, footsteps, reloads, explosions, sirens, engine/plane/freefall loops
 - Loot with typed ammo — 5.56 for the rifle, 12-gauge shells, 7.62 for the sniper — plus armor vests, medkits, frag and smoke grenades, all as recognizable 3D models
 - Real smoke: soft round sprite clouds ~18 m across that sit where they land for 20 seconds and genuinely blind bots (inside or through)
