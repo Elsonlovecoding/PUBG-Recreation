@@ -10,7 +10,7 @@ const waterMat = new THREE.ShaderMaterial({
     deep:     { value: new THREE.Color(0x1d4a63) },
     shallow:  { value: new THREE.Color(0x2f6f8d) },
     fogColor: { value: new THREE.Color(SKY_HORIZON) },
-    fogNear:  { value: 120 }, fogFar: { value: 860 },
+    fogNear:  { value: 130 }, fogFar: { value: 1050 },
   },
   vertexShader: [
     'uniform float time;',
@@ -38,12 +38,14 @@ const waterMat = new THREE.ShaderMaterial({
     '  col = mix(col, fogColor*0.95, fres*0.55);',                                // sky tint at grazing angles
     '  vec3 h = normalize(viewDir + normalize(sunDir));',
     '  col += vec3(1.0, 0.95, 0.85) * pow(max(dot(nrm, h), 0.0), 90.0) * 0.9;',   // sun glints
-    '  col = mix(col, fogColor, smoothstep(fogNear, fogFar, vDist));',
+    '  float fAmt = smoothstep(fogNear, fogFar, vDist);',                          // warm aerial haze
+    '  vec3 fCol = fogColor * mix(vec3(1.0), vec3(1.10, 1.015, 0.88), pow(max(dot(-viewDir, normalize(sunDir)), 0.0), 5.0));',
+    '  col = mix(col, fCol, fAmt);',
     '  gl_FragColor = vec4(col, 0.94);',
     '}'
   ].join('\n')
 });
-const water = new THREE.Mesh(new THREE.PlaneGeometry(8200, 8200, 96, 96), waterMat);
+const water = new THREE.Mesh(new THREE.PlaneGeometry(9800, 9800, 96, 96), waterMat);
 water.rotation.x = -Math.PI/2; water.position.y = -2.3;
 scene.add(water);
 
@@ -74,6 +76,38 @@ function mergeGeoms(list){
   return out;
 }
 const MAT_FLAT = new THREE.MeshStandardMaterial({ vertexColors:true, flatShading:true, roughness:1, metalness:0 });
+// every prop shares this material — give it aerial-perspective fog + a subtle triplanar
+// surface grain so walls, rocks and trunks stop reading as perfectly flat paint
+MAT_FLAT.onBeforeCompile = (shader) => {
+  injectAerialFog(shader);
+  shader.uniforms.tGrain = { value: DETAIL.grain };
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', '#include <common>\nuniform sampler2D tGrain;')
+    .replace('#include <lights_physical_fragment>', [
+      '{',
+      '  vec3 gN = abs(inverseTransformDirection(normal, viewMatrix));',
+      '  gN /= (gN.x + gN.y + gN.z + 0.0001);',
+      '  float g1 = texture2D(tGrain, vAWPos.zy*0.41).r;',
+      '  float g2 = texture2D(tGrain, vAWPos.xz*0.41).r;',
+      '  float g3 = texture2D(tGrain, vAWPos.xy*0.41).r;',
+      '  float gr = (g1*gN.x + g2*gN.y + g3*gN.z) * 2.0;',
+      '  diffuseColor.rgb *= 0.82 + gr*0.20;',
+      '}',
+      '#include <lights_physical_fragment>'].join('\n'));
+};
+// fake global illumination baked into vertex colors: darken downward faces and a
+// contact band near the ground so props sit IN the world instead of on top of it
+function bakeAO(geo, band, downMul){
+  const p = geo.attributes.position, n = geo.attributes.normal, c = geo.attributes.color;
+  for(let i=0;i<p.count;i++){
+    let f = 1;
+    if(n.getY(i) < -0.25) f *= downMul;
+    const above = p.getY(i) - heightAt(p.getX(i), p.getZ(i));
+    f *= 0.76 + 0.24 * clamp(above / band, 0, 1);
+    if(f < 0.999) c.setXYZ(i, c.getX(i)*f, c.getY(i)*f, c.getZ(i)*f);
+  }
+  return geo;
+}
 const tmpM = new THREE.Matrix4(), tmpQ = new THREE.Quaternion(), tmpE = new THREE.Euler();
 function xform(g, x,y,z, ry, sx,sy,sz){
   tmpM.compose(new THREE.Vector3(x,y,z), tmpQ.setFromEuler(tmpE.set(0,ry||0,0)),
@@ -84,12 +118,12 @@ function xform(g, x,y,z, ry, sx,sy,sz){
 // horizon mountains ring (outside playable map, mostly silhouettes in the fog)
 {
   const mg = [];
-  for(let i=0;i<30;i++){
-    const a = (i/30)*Math.PI*2 + randRange(-0.10,0.10);
-    const rad = randRange(1520, 1920);
-    const w = randRange(140,260), h = randRange(110,320);
+  for(let i=0;i<32;i++){
+    const a = (i/32)*Math.PI*2 + randRange(-0.10,0.10);
+    const rad = randRange(1880, 2340);
+    const w = randRange(180,320), h = randRange(130,390);
     const mx = Math.cos(a)*rad, mz = Math.sin(a)*rad;
-    if(Math.hypot(mx, mz + 1950) < w + 70) continue;          // keep clear of the lobby hangar
+    if(Math.hypot(mx, mz + 2350) < w + 70) continue;          // keep clear of the lobby hangar
     const col = new THREE.Color().setHSL(0.33+randRange(-0.04,0.07), 0.26, 0.33+randRange(-0.05,0.06));
     mg.push(xform(tintGeo(new THREE.ConeGeometry(w, h, 5+Math.floor(Math.random()*3)), col.getHex()),
       mx, h/2-6, mz, randRange(0,Math.PI)));
@@ -100,8 +134,8 @@ function xform(g, x,y,z, ry, sx,sy,sz){
 // clouds
 const clouds = new THREE.Mesh((()=> {
   const cg = [];
-  for(let i=0;i<42;i++){
-    const cx = randRange(-1180,1180), cz = randRange(-1180,1180), cy = randRange(170,265);
+  for(let i=0;i<52;i++){
+    const cx = randRange(-1430,1430), cz = randRange(-1430,1430), cy = randRange(180,290);
     const puffs = 3+Math.floor(Math.random()*3);
     for(let k=0;k<puffs;k++){
       cg.push(xform(tintGeo(new THREE.IcosahedronGeometry(randRange(10,19),0), 0xffffff),
@@ -132,19 +166,19 @@ function slopeAt(x,z){
   return Math.hypot(heightAt(x+e,z)-heightAt(x-e,z), heightAt(x,z+e)-heightAt(x,z-e))/(2*e);
 }
 function goodScatterSpot(x, z, roadPad, bldPad){
-  if(Math.max(Math.abs(x),Math.abs(z)) > 1180) return false;
+  if(Math.max(Math.abs(x),Math.abs(z)) > 1430) return false;
   if(insideBuilding(x, z, bldPad)) return false;
   if(roadFactorGen(x,z) > roadPad) return false;
   return true;
 }
 
-// ---------------- trees (2100), rocks (400), grass tufts (4800) ----------------
+// ---------------- trees (2900), rocks (540), grass tufts (5400) ----------------
 const treeSpots = [];
 {
   const tg = [];
   let placed = 0, guard = 0;
-  while(placed < 2100 && guard++ < 110000){
-    const x = randRange(-1180,1180), z = randRange(-1180,1180);
+  while(placed < 2900 && guard++ < 150000){
+    const x = randRange(-1430,1430), z = randRange(-1430,1430);
     if(!goodScatterSpot(x,z,0.03,4.5) || slopeAt(x,z) > 0.62) continue;
     const y = heightAt(x,z);
     if(y < -0.6 || y > 76) continue;                          // no beach/lake trees, none above the treeline
@@ -162,15 +196,15 @@ const treeSpots = [];
     }
     placed++;
   }
-  const trees = new THREE.Mesh(mergeGeoms(tg), MAT_FLAT);
+  const trees = new THREE.Mesh(bakeAO(mergeGeoms(tg), 2.2, 0.80), MAT_FLAT);
   trees.castShadow = true; trees.receiveShadow = true;
   scene.add(trees);
 }
 {
   const rg = [];
   let placed = 0, guard = 0;
-  while(placed < 400 && guard++ < 44000){
-    const x = randRange(-1180,1180), z = randRange(-1180,1180);
+  while(placed < 540 && guard++ < 60000){
+    const x = randRange(-1430,1430), z = randRange(-1430,1430);
     if(!goodScatterSpot(x,z,0.05,3)) continue;
     const y = heightAt(x,z), r = randRange(0.5,1.9);
     const g = new THREE.IcosahedronGeometry(r, 0);
@@ -184,15 +218,15 @@ const treeSpots = [];
     if(r > 1.3) coverSpots.push({ x: x + randRange(-2.2,2.2), z: z + randRange(-2.2,2.2) });
     placed++;
   }
-  const rocks = new THREE.Mesh(mergeGeoms(rg), MAT_FLAT);
+  const rocks = new THREE.Mesh(bakeAO(mergeGeoms(rg), 1.3, 0.85), MAT_FLAT);
   rocks.castShadow = true; rocks.receiveShadow = true;
   scene.add(rocks);
 }
 {
   const gg = [];
   let placed = 0, guard = 0;
-  while(placed < 4800 && guard++ < 90000){
-    const x = randRange(-1180,1180), z = randRange(-1180,1180);
+  while(placed < 5400 && guard++ < 110000){
+    const x = randRange(-1430,1430), z = randRange(-1430,1430);
     if(!goodScatterSpot(x,z,0.04,2)) continue;
     const y = heightAt(x,z);
     if(y < -0.4 || y > 70) continue;                          // no tufts on beaches or the high slopes
@@ -451,7 +485,7 @@ for(const tw of towers){
   coverSpots.push({ x:tw.x+2.4, z:tw.z+2.4 });
 }
 {
-  const bmesh = new THREE.Mesh(mergeGeoms(bldGeoms), MAT_FLAT);
+  const bmesh = new THREE.Mesh(bakeAO(mergeGeoms(bldGeoms), 2.6, 0.80), MAT_FLAT);
   bmesh.castShadow = true; bmesh.receiveShadow = true;
   scene.add(bmesh);
 }

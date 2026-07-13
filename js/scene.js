@@ -1,5 +1,5 @@
 'use strict';
-// PUBG Recreation — renderer, camera, sky dome, sun + fill lights
+// PUBG Recreation — renderer, camera, sky dome, two-tier sun shadows, shared atmosphere shader
 
 // ---------------- renderer / scene ----------------
 const SKY_HORIZON = 0xd4dfe8, SKY_TOP = 0x6f9fd8;
@@ -12,8 +12,8 @@ renderer.domElement.className = 'game';
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(SKY_HORIZON, 120, 860);
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.08, 4600);
+scene.fog = new THREE.Fog(SKY_HORIZON, 130, 1050);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.08, 5600);
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth/window.innerHeight;
@@ -21,8 +21,30 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// ---------------- sky dome (gradient shader + sun glow) ----------------
 const sunDirection = new THREE.Vector3(0.45, 0.62, 0.28).normalize();
+
+// aerial perspective, shared by the big world materials: with distance the scene
+// desaturates and the haze warms toward the sun — the strongest "this is far away" cue
+function injectAerialFog(shader){
+  shader.uniforms.uSunW = { value: sunDirection.clone() };
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', '#include <common>\nvarying vec3 vAWPos;')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvAWPos = (modelMatrix * vec4(position, 1.0)).xyz;');
+  shader.fragmentShader = shader.fragmentShader
+    .replace('#include <common>', '#include <common>\nvarying vec3 vAWPos;\nuniform vec3 uSunW;')
+    .replace('#include <fog_fragment>', [
+      '#ifdef USE_FOG',
+      '  float aFog = smoothstep(fogNear, fogFar, fogDepth);',
+      '  vec3 aDir = normalize(vAWPos - cameraPosition);',
+      '  float aSun = pow(max(dot(aDir, uSunW), 0.0), 5.0);',
+      '  vec3 aCol = fogColor * mix(vec3(1.0), vec3(1.10, 1.015, 0.88), aSun);',
+      '  float aGrey = dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114));',
+      '  gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(aGrey), aFog*0.30);',
+      '  gl_FragColor.rgb = mix(gl_FragColor.rgb, aCol, aFog);',
+      '#endif'].join('\n'));
+}
+
+// ---------------- sky dome (gradient shader + horizon haze + sun glow) ----------------
 const sky = new THREE.Mesh(
   new THREE.SphereGeometry(1000, 24, 14),
   new THREE.ShaderMaterial({
@@ -43,6 +65,8 @@ const sky = new THREE.Mesh(
       'void main(){',
       '  float h = clamp(vDir.y, 0.0, 1.0);',
       '  vec3 col = mix(horizonColor, topColor, pow(h, 0.62));',
+      '  float haze = exp(-max(vDir.y, 0.0) * 6.5);',                      // thick band of haze
+      '  col = mix(col, horizonColor * vec3(1.035, 1.005, 0.955), haze * 0.55);',
       '  col = mix(horizonColor * vec3(1.02, 0.99, 0.94), col, clamp(vDir.y*8.0+0.5, 0.0, 1.0));',
       '  float s = pow(max(dot(normalize(vDir), sunDir), 0.0), 40.0);',
       '  float halo = pow(max(dot(normalize(vDir), sunDir), 0.0), 5.0);',
@@ -54,17 +78,27 @@ const sky = new THREE.Mesh(
 );
 scene.add(sky);
 
-// ---------------- lights ----------------
-const sun = new THREE.DirectionalLight(0xffeed4, 1.0);
+// ---------------- lights: near sun (crisp shadows) + far sun (shadows to the fog line) ----------------
+const sun = new THREE.DirectionalLight(0xffeed4, 0.62);
 sun.position.copy(sunDirection).multiplyScalar(160);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.left = -85; sun.shadow.camera.right = 85;
-sun.shadow.camera.top = 85;   sun.shadow.camera.bottom = -85;
-sun.shadow.camera.near = 10;  sun.shadow.camera.far = 400;
-sun.shadow.bias = -0.0006;
-sun.shadow.normalBias = 0.035;
+sun.shadow.camera.left = -42; sun.shadow.camera.right = 42;
+sun.shadow.camera.top = 42;   sun.shadow.camera.bottom = -42;
+sun.shadow.camera.near = 10;  sun.shadow.camera.far = 420;
+sun.shadow.bias = -0.0005;
+sun.shadow.normalBias = 0.03;
 scene.add(sun); scene.add(sun.target);
 
-scene.add(new THREE.AmbientLight(0xfff1de, 0.24));
-scene.add(new THREE.HemisphereLight(0xbfd6ea, 0x8c7a58, 0.45));
+const sunFar = new THREE.DirectionalLight(0xffeed4, 0.48);
+sunFar.castShadow = true;
+sunFar.shadow.mapSize.set(1536, 1536);
+sunFar.shadow.camera.left = -250; sunFar.shadow.camera.right = 250;
+sunFar.shadow.camera.top = 250;   sunFar.shadow.camera.bottom = -250;
+sunFar.shadow.camera.near = 10;   sunFar.shadow.camera.far = 900;
+sunFar.shadow.bias = -0.0012;
+sunFar.shadow.normalBias = 0.10;
+scene.add(sunFar); scene.add(sunFar.target);
+
+scene.add(new THREE.AmbientLight(0xfff1de, 0.23));
+scene.add(new THREE.HemisphereLight(0xbfd6ea, 0x8c7a58, 0.47));

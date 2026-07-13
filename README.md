@@ -1,12 +1,12 @@
 # PUBG Recreation
 
-A low-poly battle royale shooter for the browser, built with [Three.js](https://threejs.org/) (r128 via cdnjs). No build step, no server — open `pubg.html` in any modern browser and click **Deploy**.
+A stylized-realistic battle royale shooter for the browser, built with [Three.js](https://threejs.org/) (r128 via cdnjs). No build step, no server, and still zero asset files — every texture is generated procedurally at boot. Open `pubg.html` in any modern browser and click **Deploy**.
 
 ![genre](https://img.shields.io/badge/genre-battle%20royale-f2a900) ![tech](https://img.shields.io/badge/three.js-r128-049EF4)
 
 ## How to play
 
-From the lobby, customize your character and weapon slots, hit PLAY, and queue into a match. A cargo plane then carries 40 combatants across a 2.5 km × 2.5 km island — pick your moment, press F, and parachute in. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates for typed ammo, armor, medkits and grenades, grab a roadside buggy to rotate, and watch the kill feed. The island has Karona City with its concrete tower blocks, four villages, a military depot, a quarry, farms with silos, watchtowers, lone houses, a lake and three snow-capped mountains — all linked by paved highways and dirt tracks.
+From the lobby, customize your character and weapon slots, hit PLAY, and queue into a match. A cargo plane then carries 40 combatants across a 3 km × 3 km island — pick your moment, press F, and steer your freefall to the spot you want. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates for typed ammo, armor, medkits and grenades, grab a roadside buggy to rotate, and watch the kill feed. The island has Karona City with its concrete tower blocks, five villages and coastal capes, a military depot, a quarry, farms with silos, watchtowers, lone houses, a lake and four snow-capped ridge massifs — all linked by paved highways and dirt tracks.
 
 | Input | Action |
 |---|---|
@@ -32,9 +32,11 @@ pubg.html          entry point (HUD markup + script includes)
 css/style.css      HUD, menus, inventory, kill feed styling
 js/utils.js        math helpers + seeded simplex noise
 js/audio.js        procedural sound — all effects synthesized with Web Audio
-js/scene.js        renderer, camera, gradient sky dome, sun + fill lights
-js/terrain.js      village/road layout, noise heightfield, vertex-colored terrain chunks
-js/world.js        water, mountains, clouds, trees/rocks/grass, buildings + colliders
+js/detail.js       procedural tileable detail textures (grass/dirt/rock/sand/snow/asphalt)
+js/scene.js        renderer, camera, sky dome, two-tier sun shadows, aerial-perspective fog
+js/terrain.js      village/road layout, ridged heightfield, per-pixel splat-textured terrain
+js/world.js        water, horizon, clouds, trees/rocks, buildings + colliders, baked AO
+js/grass.js        instanced wind-swaying grass ring around the player
 js/combat.js       hitscan raycasting, weapon stats, loot crates
 js/effects.js      particle pools, bullet tracers, impact FX
 js/player.js       player state, gun viewmodels, shooting, input, movement
@@ -55,7 +57,10 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 - Sniper scope lock: double-click to latch the scope and keep firing scoped shots; double-click again to drop back out (hold right-click still works for quick peeks)
 - PUBG-style lobby inside a private hangar: your character stands full-height on a lit spawn pad; profile card with editable name/level top-left, WARDROBE / LOADOUT / STATISTICS / CONTROLS cards top-right, rotating tips above a big angled gold START; wardrobe and weapon-slot choices persist, and matchmaking runs as a banner before deploying
 
-- Procedural 2.5 km × 2.5 km island with domain-warped ridgelines, three real fBm-shaped mountains that rise past 150 m into bare rock and snowcaps (trees stop at the treeline), sand beaches and a lake; ~76 buildings across twelve settlement sites
+- Procedural 3 km × 3 km island with domain-warped hills and four ridged-noise mountain massifs that rise past 140 m into bare rock strata and snowcaps (trees stop at the treeline), sand beaches and a lake; ~84 buildings across fifteen settlement sites
+- Per-pixel terrain materials with zero asset files: procedurally generated tileable grass, dirt, rock, sand, snow and asphalt detail textures are splat-blended per pixel by slope, altitude and road maps — so roads have crisp painted edges instead of vertex smears, cliffs show strata, and the ground reads as material up close
+- Smooth analytic terrain normals (no more 4 m facets), a dense ring of ~11,000 wind-swaying grass clumps that streams around you and sinks away at its edge, baked ambient occlusion grounding every building, tree and rock, and a triplanar concrete grain on all structures
+- Two-tier sun shadows — a crisp near map plus a coarse map reaching ~250 m — erase the old shadow cutoff line, while aerial-perspective fog desaturates with distance and warms toward the sun
 - Karona City: four concrete high-rise towers (15–24 m, full window grids and parapets) plus apartments, a warehouse and houses on a paved street grid
 - Tower interiors are real: a concrete storey every 3 m linked by scissor staircases, loot crates on two floors, and a final flight through a rooftop stairhouse onto the roof — a sniper prize crate waits up there behind the parapet
 - Real roads: asphalt-colored paved avenues and arterials with worn dirt shoulders link the city, villages and depot, while farm tracks stay dirt — and buggies park along both
@@ -67,7 +72,8 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 - Loot with typed ammo — 5.56 for the rifle, 12-gauge shells, 7.62 for the sniper — plus armor vests, medkits, frag and smoke grenades, all as recognizable 3D models
 - Real smoke: soft round sprite clouds ~18 m across that sit where they land for 20 seconds and genuinely blind bots (inside or through)
 - Three armor pieces — shirt armor, helmet, boots — in three levels each, found only as loot (you start with none); higher-level pieces replace lower ones, total damage reduction reaches 35%, the E-inventory lists your equipment, and an equipped helmet shows on your character; bots' visible helmets and vests grant them the same protection
-- Thirteen buggies parked along the roads (two in the city) with a PUBG-style "F — DRIVE" prompt, slope physics, run-overs and explosive wrecks
+- Thirteen buggies parked along the roads (two in the city) with a PUBG-style "F — DRIVE" prompt, slope physics, run-overs and explosive wrecks — rebuilt with roll cages, seats, steering wheel, headlights, door panels, spare wheel and hub-detailed rolling wheels
+- Characters carry baked shading (sky-lit from above, shaded feet), chest rigs, belt pouches and knee pads over their gear
 - 39 bots that hear gunfire, hunt attackers, loot crates, heal behind cover, throw grenades, and rotate to the next zone circle early
 - Sniper: click fires instantly when scoped; from the hip, hold and release for a deliberate shot
 - Shrinking zone with countdown timers on every phase; kill feed, kills counter, minimap with flight path

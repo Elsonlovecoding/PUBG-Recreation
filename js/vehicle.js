@@ -33,28 +33,76 @@ function snapToRoad(sp){
 }
 function makeBuggy(hex){
   const g = new THREE.Group();
-  const paint = new THREE.MeshStandardMaterial({ color:hex, flatShading:true, roughness:0.7, metalness:0.1 });
-  const dark  = new THREE.MeshStandardMaterial({ color:0x24262a, flatShading:true, roughness:0.9 });
-  const glass = new THREE.MeshStandardMaterial({ color:0x27343f, flatShading:true, roughness:0.4 });
-  const mats = [paint, dark, glass];
-  function part(geo, mat, x,y,z, rz){
-    const m = new THREE.Mesh(geo, mat);
-    m.position.set(x,y,z);
-    if(rz) m.rotation.z = rz;
-    m.castShadow = true;
-    g.add(m); return m;
+  // vertex-colored merged hull: one draw call for ~30 parts (wreck tint via material.color)
+  const hullMat  = new THREE.MeshStandardMaterial({ vertexColors:true, flatShading:true, roughness:0.55, metalness:0.20 });
+  const glassMat = new THREE.MeshStandardMaterial({ color:0x2b3d4c, flatShading:true, roughness:0.15, metalness:0.3 });
+  const wheelMat = new THREE.MeshStandardMaterial({ vertexColors:true, flatShading:true, roughness:0.85 });
+  const mats = [hullMat, glassMat, wheelMat];
+  const DK = 0x24262a, ST = 0x394048, LAMP = 0xfff8d8, MUD = 0x4a4034;
+  const hull = [];
+  function hp2(geo, hexc, x,y,z, rx,ry,rz){
+    if(rx) geo.rotateX(rx); if(ry) geo.rotateY(ry); if(rz) geo.rotateZ(rz);
+    geo.translate(x,y,z);
+    hull.push(tintGeo(geo, hexc));
   }
-  part(new THREE.BoxGeometry(1.9, 0.5, 3.4), paint, 0, 0.75, 0);                 // chassis
-  part(new THREE.BoxGeometry(1.7, 0.35, 1.1), paint, 0, 1.05, -1.0);             // hood... rear deck
-  part(new THREE.BoxGeometry(1.6, 0.45, 1.2), glass, 0, 1.25, 0.55);             // windshield block
-  part(new THREE.BoxGeometry(0.12, 0.65, 0.12), dark, -0.8, 1.35, -0.4);         // rollcage
-  part(new THREE.BoxGeometry(0.12, 0.65, 0.12), dark,  0.8, 1.35, -0.4);
-  part(new THREE.BoxGeometry(1.72, 0.12, 0.12), dark,  0, 1.72, -0.4);
-  part(new THREE.BoxGeometry(0.9, 0.25, 0.7), dark, 0, 1.0, -0.2);               // seat
+  const B = (w,h,d) => new THREE.BoxGeometry(w,h,d);
+  // hull: tub, sloped hood, grille + bumpers, rear deck, door panels, mud skirts
+  hp2(B(1.9, 0.44, 3.6), hex, 0, 0.80, 0);
+  hp2(B(1.78, 0.24, 1.15), hex, 0, 1.06, 1.30, -0.10);
+  hp2(B(1.66, 0.32, 0.14), ST, 0, 0.88, 1.84);
+  hp2(B(1.94, 0.15, 0.22), DK, 0, 0.60, 1.92);
+  hp2(B(1.94, 0.15, 0.22), DK, 0, 0.60, -1.88);
+  hp2(B(1.76, 0.26, 0.95), hex, 0, 1.02, -1.28);
+  hp2(B(0.07, 0.42, 1.35), hex, -0.965, 1.10, -0.10);
+  hp2(B(0.07, 0.42, 1.35), hex,  0.965, 1.10, -0.10);
+  hp2(B(0.05, 0.06, 0.34), ST, -1.00, 1.18, 0.10);           // door handles
+  hp2(B(0.05, 0.06, 0.34), ST,  1.00, 1.18, 0.10);
+  hp2(B(0.06, 0.26, 3.30), MUD, -0.99, 0.52, 0);
+  hp2(B(0.06, 0.26, 3.30), MUD,  0.99, 0.52, 0);
+  // headlights + windshield base
+  hp2(B(0.28, 0.16, 0.08), LAMP, -0.58, 1.02, 1.90);
+  hp2(B(0.28, 0.16, 0.08), LAMP,  0.58, 1.02, 1.90);
+  hp2(B(1.60, 0.07, 0.10), ST, 0, 1.20, 0.80);
+  // roll cage: posts, roof rails, cross bars
+  hp2(B(0.09, 0.62, 0.09), DK, -0.78, 1.48, 0.52, 0.18);
+  hp2(B(0.09, 0.62, 0.09), DK,  0.78, 1.48, 0.52, 0.18);
+  hp2(B(0.09, 0.74, 0.09), DK, -0.78, 1.50, -0.92);
+  hp2(B(0.09, 0.74, 0.09), DK,  0.78, 1.50, -0.92);
+  hp2(B(0.09, 0.09, 1.52), DK, -0.79, 1.83, -0.19);
+  hp2(B(0.09, 0.09, 1.52), DK,  0.79, 1.83, -0.19);
+  hp2(B(1.66, 0.09, 0.09), DK, 0, 1.83, 0.50);
+  hp2(B(1.66, 0.09, 0.09), DK, 0, 1.83, -0.90);
+  // cockpit: two seats + steering wheel + column
+  for(const sx of [-0.42, 0.42]){
+    hp2(B(0.60, 0.16, 0.60), DK, sx, 1.06, -0.26);
+    hp2(B(0.60, 0.55, 0.13), DK, sx, 1.38, -0.56, 0.14);
+  }
+  hp2(new THREE.TorusGeometry(0.17, 0.032, 6, 12), DK, -0.42, 1.34, 0.36, -0.62);
+  hp2(B(0.06, 0.30, 0.06), ST, -0.42, 1.22, 0.44, -0.62);
+  // spare wheel + exhaust
+  hp2(new THREE.CylinderGeometry(0.34, 0.34, 0.22, 10), DK, 0, 1.18, -1.90, Math.PI/2);
+  hp2(new THREE.CylinderGeometry(0.05, 0.05, 0.55, 6), ST, 0.52, 0.55, -1.78, Math.PI/2);
+  const hullMesh = new THREE.Mesh(mergeGeoms(hull), hullMat);
+  hullMesh.castShadow = true;
+  g.add(hullMesh);
+  const wind = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.55, 0.06), glassMat);
+  wind.position.set(0, 1.44, 0.74); wind.rotation.x = -0.32; wind.castShadow = true;
+  g.add(wind);
+  // wheels: tire + bright hub, one merged mesh per wheel in a spin group
+  const wheelGeo = (() => {
+    const tire = tintGeo(new THREE.CylinderGeometry(0.46, 0.46, 0.34, 12).rotateZ(Math.PI/2), DK);
+    const hub  = tintGeo(new THREE.CylinderGeometry(0.21, 0.21, 0.36, 8).rotateZ(Math.PI/2), 0x8a9098);
+    return mergeGeoms([tire, hub]);
+  })();
   const wheels = [];
-  for(const [wx, wz] of [[-0.95, 1.15],[0.95, 1.15],[-0.95, -1.15],[0.95, -1.15]]){
-    const w = part(new THREE.CylinderGeometry(0.42, 0.42, 0.3, 10), dark, wx, 0.42, wz, Math.PI/2);
-    wheels.push(w);
+  for(const [wx, wz] of [[-1.00, 1.22],[1.00, 1.22],[-1.00, -1.22],[1.00, -1.22]]){
+    const wm = new THREE.Mesh(wheelGeo, wheelMat);
+    wm.castShadow = true;
+    const wg = new THREE.Group();
+    wg.position.set(wx, 0.46, wz);
+    wg.add(wm);
+    g.add(wg);
+    wheels.push(wg);
   }
   return { g, wheels, mats };
 }

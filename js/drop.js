@@ -2,7 +2,7 @@
 // PUBG Recreation — the plane drop: cargo plane, freefall, parachutes (bots too)
 
 let dropActive = false, dropEnded = false, planeT = 0, dropWasOver = false;
-const PLANE_Y = 280, PLANE_SPEED = 96;
+const PLANE_Y = 280, PLANE_SPEED = 100;
 const dropPath = { sx:0, sz:0, ex:0, ez:0, dur: 1 };
 
 const plane = (function(){
@@ -45,9 +45,9 @@ function startDrop(){
   const dx = Math.cos(a), dz = Math.sin(a);
   const off = randRange(-300, 300);
   const cx = -dz*off, cz = dx*off;                     // perpendicular offset through the middle
-  dropPath.sx = cx - dx*1900; dropPath.sz = cz - dz*1900;
-  dropPath.ex = cx + dx*1900; dropPath.ez = cz + dz*1900;
-  dropPath.dur = 3800 / PLANE_SPEED;
+  dropPath.sx = cx - dx*2280; dropPath.sz = cz - dz*2280;
+  dropPath.ex = cx + dx*2280; dropPath.ez = cz + dz*2280;
+  dropPath.dur = 4560 / PLANE_SPEED;
   plane.visible = true;
   plane.rotation.y = Math.atan2(dx, dz);
   player.dropState = 'plane';
@@ -59,7 +59,7 @@ function startDrop(){
     b.active = false;
     b.group.visible = false;
     const px = b.landing.x - dropPath.sx, pz = b.landing.z - dropPath.sz;
-    const along = clamp((px*dx + pz*dz) / 3800, 0.08, 0.94);
+    const along = clamp((px*dx + pz*dz) / 4560, 0.08, 0.94);
     b.jumpAt = along * dropPath.dur + randRange(-0.8, 0.8);
     b.dropY = PLANE_Y + randRange(-2, 2);
     b.dropping = false;
@@ -69,7 +69,7 @@ function planePos(t){
   const f = clamp(t / dropPath.dur, 0, 1);
   return { x: lerp(dropPath.sx, dropPath.ex, f), z: lerp(dropPath.sz, dropPath.ez, f) };
 }
-function overIsland(pp){ return Math.max(Math.abs(pp.x), Math.abs(pp.z)) < 1100; }
+function overIsland(pp){ return Math.max(Math.abs(pp.x), Math.abs(pp.z)) < 1330; }
 function jumpFromPlane(){
   if(player.dropState !== 'plane') return;
   const pp = planePos(planeT);
@@ -117,7 +117,7 @@ function updateDrop(dt){
     if((dropWasOver && !over) || planeT >= dropPath.dur - 1){
       dropWasOver = true;                          // force the exit at the last chance
       const forced = planePos(Math.min(planeT, dropPath.dur - 1));
-      player.pos.set(clamp(forced.x, -1080, 1080), PLANE_Y - 4, clamp(forced.z, -1080, 1080));
+      player.pos.set(clamp(forced.x, -1310, 1310), PLANE_Y - 4, clamp(forced.z, -1310, 1310));
       player.vel.set(0, 0, 0);
       player.dropState = 'free';
       thirdPrefBeforeDrop = thirdPerson;
@@ -146,8 +146,8 @@ function updateDrop(dt){
     // lean on the keys to glide (slower fall, real reach), hands off to plummet
     const targetVy = chute ? -6.0 : ((ix || iz) ? -30 : -42);
     player.vel.y = lerp(player.vel.y, targetVy, Math.min(1, dt*(chute ? 3.2 : 1.4)));
-    player.pos.x = clamp(player.pos.x + player.vel.x*dt, -1140, 1140);   // stay inside the surf line
-    player.pos.z = clamp(player.pos.z + player.vel.z*dt, -1140, 1140);
+    player.pos.x = clamp(player.pos.x + player.vel.x*dt, -1390, 1390);   // stay inside the surf line
+    player.pos.z = clamp(player.pos.z + player.vel.z*dt, -1390, 1390);
     player.pos.y += player.vel.y*dt;
     SFX.setFall(Math.abs(player.vel.y) + Math.hypot(player.vel.x, player.vel.z)*0.3);
     const g = groundAt(player.pos.x, player.pos.z, player.pos.y);

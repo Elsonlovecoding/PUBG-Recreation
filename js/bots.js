@@ -20,10 +20,11 @@ doorSpots.forEach(d => waypoints.push({x:d.x, z:d.z}));
  [128,470],[-495,-95],[388,-468],[250,60],[-300,-50],
  [-82,698],[698,120],[-660,-520],[620,556],[250,-696],
  [-390,90],[-437,42],[-341,138],[-390,144],                  // Karona City streets
- [-680,420],[540,-480],[300,700],                            // mountain feet
- [900,-200],[-880,600],[150,-960],[820,820],[-940,-260]].forEach(p => waypoints.push({x:p[0], z:p[1]}));
-for(let i=0;i<120;i++){
-  const x = randRange(-1120,1120), z = randRange(-1120,1120);
+ [-800,480],[640,-580],[360,820],[-320,-740],                // mountain feet
+ [900,-200],[-880,600],[150,-960],[820,820],[-940,-260],
+ [995,625],[-1000,-785],[150,-1000],[-940,895]].forEach(p => waypoints.push({x:p[0], z:p[1]}));
+for(let i=0;i<150;i++){
+  const x = randRange(-1360,1360), z = randRange(-1360,1360);
   if(!insideBuilding(x,z,2) && heightAt(x,z) > 0) waypoints.push({x,z});
 }
 
@@ -37,6 +38,16 @@ function bakeGroupGeoms(group, out){
     out.push(tintGeo(g2, o.material.color.getHex()));
   });
 }
+// fake global illumination for characters: upward faces catch the sky, feet sit in shade
+function shadeBot(geo){
+  const n = geo.attributes.normal, c = geo.attributes.color, p = geo.attributes.position;
+  for(let i=0;i<c.count;i++){
+    let f = 0.85 + 0.17*clamp(n.getY(i)*0.5+0.5, 0, 1);
+    f *= 0.93 + 0.07*clamp(p.getY(i)/1.7, 0, 1);
+    c.setXYZ(i, c.getX(i)*f, c.getY(i)*f, c.getZ(i)*f);
+  }
+  return geo;
+}
 function buildBotMesh(i, weapon){
   const g = new THREE.Group();
   const mat = new THREE.MeshStandardMaterial({ vertexColors:true, flatShading:true, roughness:1 });
@@ -46,11 +57,17 @@ function buildBotMesh(i, weapon){
   const hasVest = i % 3 !== 1, hg = i % 4;
   function B(arr, w,h,d, x,y,z, hex){ arr.push(xform(tintGeo(new THREE.BoxGeometry(w,h,d), hex), x,y,z, 0)); }
 
-  // static body: torso, belt, vest, backpack, head, face, headgear
+  // static body: torso, belt + pouches, vest with straps, backpack, head, face, headgear
   const body = [];
   B(body, 0.62,0.72,0.34, 0,1.08,0, shirt);
   B(body, 0.64,0.09,0.36, 0,0.76,0, 0x26282c);
-  if(hasVest) B(body, 0.68,0.46,0.42, 0,1.16,0, 0x3a4034);
+  B(body, 0.15,0.17,0.09, -0.19,0.80,0.20, 0x33382e);                                    // belt pouches
+  B(body, 0.15,0.17,0.09,  0.05,0.80,0.20, 0x33382e);
+  if(hasVest){
+    B(body, 0.68,0.46,0.42, 0,1.16,0, 0x3a4034);
+    B(body, 0.09,0.42,0.05, -0.18,1.30,0.225, 0x2f342b);                                 // chest straps
+    B(body, 0.09,0.42,0.05,  0.18,1.30,0.225, 0x2f342b);
+  }
   if(i % 2 === 0) B(body, 0.46,0.52,0.20, 0,1.16,-0.29, 0x6b5a3a);
   B(body, 0.36,0.36,0.36, 0,1.66,0, skin);
   B(body, 0.055,0.05,0.02, -0.085,1.695,0.18, 0x1e1a16);
@@ -59,13 +76,13 @@ function buildBotMesh(i, weapon){
   else if(hg === 1) B(body, 0.42,0.20,0.42, 0,1.83,0, 0xb8bcbe);                          // lvl-1 helmet
   else if(hg === 2){ B(body, 0.40,0.12,0.40, 0,1.88,0, pants); B(body, 0.38,0.05,0.16, 0,1.83,0.26, pants); }
   else              B(body, 0.39,0.12,0.39, 0,1.87,0, HAIR_COLORS[i % HAIR_COLORS.length]);
-  const bodyMesh = new THREE.Mesh(mergeGeoms(body), mat);
+  const bodyMesh = new THREE.Mesh(shadeBot(mergeGeoms(body)), mat);
   bodyMesh.castShadow = true; g.add(bodyMesh);
 
   // limbs on animation pivots
   function limb(px, py, boxes){
     const pivot = new THREE.Object3D(); pivot.position.set(px, py, 0); g.add(pivot);
-    const mesh = new THREE.Mesh(mergeGeoms(boxes), mat);
+    const mesh = new THREE.Mesh(shadeBot(mergeGeoms(boxes)), mat);
     mesh.castShadow = true; pivot.add(mesh);
     return pivot;
   }
@@ -84,6 +101,7 @@ function buildBotMesh(i, weapon){
   const legGeo = () => {
     const arr = [];
     B(arr, 0.20,0.60,0.20, 0,-0.30,0, pants);
+    B(arr, 0.21,0.13,0.22, 0,-0.37,0.02, 0x2c2f28);                                      // knee pads
     B(arr, 0.22,0.16,0.24, 0,-0.66,0.01, 0x2a2622);
     return arr;
   };
@@ -116,7 +134,7 @@ for(let i=0;i<BOT_COUNT;i++){
   // preferred landing spot (used by the plane drop; also the fallback ground spawn)
   let x, z, guard = 0;
   do {
-    const a = randRange(0,Math.PI*2), r = randRange(180,1150);
+    const a = randRange(0,Math.PI*2), r = randRange(180,1380);
     x = Math.cos(a)*r; z = Math.sin(a)*r; guard++;
   } while((insideBuilding(x,z,3) || heightAt(x,z) < 0.3) && guard < 150);
   bot.landing = { x, z };

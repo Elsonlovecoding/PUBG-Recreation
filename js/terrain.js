@@ -1,10 +1,10 @@
 'use strict';
-// PUBG Recreation — village/road layout, noise heightfield, vertex-colored terrain chunks
+// PUBG Recreation — village/road layout, noise heightfield, per-pixel splat-textured terrain
 
 // ---------------- world layout : buildings & dirt roads ----------------
-const WORLD = 2500, HALF = WORLD/2;
+const WORLD = 3000, HALF = WORLD/2;
 // clusters: Oakfield village (center), Riverside hamlet (NW), military depot (SE),
-// hilltop farm (NE) and lone houses scattered around the island
+// hilltop farm (NE), Karona City (W) and lone houses scattered around the island
 const buildings = [
   // Oakfield
   { x:-20, z:-30, w:12, d:9,  h:4.6, door:'E' },
@@ -81,6 +81,15 @@ const buildings = [
   { x:-350, z:680,  w:10, d:8,  h:4.2, door:'S' },
   { x:720,  z:-420, w:10, d:8,  h:4.4, door:'W' },
   { x:-720, z:-80,  w:11, d:9,  h:4.6, door:'E' },
+  // the far coast — new settlements for the 3km island
+  { x:1000, z:620,  w:12, d:9,  h:4.6, door:'W' },              // east cape houses
+  { x:1004, z:648,  w:10, d:8,  h:4.2, door:'W' },
+  { x:975,  z:598,  w:8,  d:7,  h:3.4, door:'N', style:'shed' },
+  { x:-1020, z:-780, w:15, d:10, h:6.6, door:'E', style:'barn' }, // southwest cape farm
+  { x:-990,  z:-805, w:10, d:8,  h:4.4, door:'N' },
+  { x:140,  z:-1010, w:14, d:10, h:6.5, door:'N', style:'warehouse', flat:true },  // south dock sheds
+  { x:170,  z:-985,  w:8,  d:7,  h:3.4, door:'W', style:'shed' },
+  { x:-950, z:900,  w:11, d:9,  h:6.2, door:'S', style:'house2' },  // northwest cape
   // Karona City — tower blocks on a paved grid
   { x:-415, z:65,   w:15, d:13, h:18, door:'E', style:'tower' },
   { x:-365, z:63,   w:14, d:12, h:21, door:'W', style:'tower' },
@@ -150,6 +159,11 @@ const roads = [
   { ax:-52,  az:-288, bx:242,  bz:-692, hw:1.8 },
   { ax:-155, az:492,  bx:-342, bz:672,  hw:1.8 },
   { ax:-692, az:296,  bx:-712, bz:-72,  hw:1.8 },
+  // long coastal routes to the new capes
+  { ax:685,  az:112,  bx:995,  bz:612,  hw:1.8 },   // to the east cape
+  { ax:-662, az:-515, bx:-1012, bz:-782, hw:1.8 },  // to the southwest cape
+  { ax:242,  az:-692, bx:148,  bz:-1002, hw:1.8 },  // to the south dock
+  { ax:-342, az:672,  bx:-938, bz:892,  hw:1.8 },   // to the northwest cape
 ];
 function distToSeg(px, pz, r){
   const dx=r.bx-r.ax, dz=r.bz-r.az, L2=dx*dx+dz*dz;
@@ -173,26 +187,27 @@ function distToSeg(px, pz, r){
 
 // ---------------- terrain height field (generation-time, analytic) ----------------
 function baseHeight(x,z){
-  const wx = Noise.fbm(x*0.0011+3.1, z*0.0011-7.7, 2, 2.0, 0.5) * 130;   // domain warp
-  const wz = Noise.fbm(x*0.0011-9.4, z*0.0011+5.2, 2, 2.0, 0.5) * 130;
-  const n = Noise.fbm((x+wx)*0.0019, (z+wz)*0.0019, 4, 2.1, 0.5);        // big rolling hills
-  let h = 1.2 + Math.pow(clamp(n*0.5+0.5, 0, 1), 1.25) * 26;
+  const wx = Noise.fbm(x*0.0011+3.1, z*0.0011-7.7, 2, 2.0, 0.5) * 140;   // domain warp
+  const wz = Noise.fbm(x*0.0011-9.4, z*0.0011+5.2, 2, 2.0, 0.5) * 140;
+  const n = Noise.fbm((x+wx)*0.0017, (z+wz)*0.0017, 4, 2.1, 0.5);        // big rolling hills
+  let h = 1.2 + Math.pow(clamp(n*0.5+0.5, 0, 1), 1.25) * 27;
   const n2 = Noise.fbm(x*0.006-4.7, z*0.006+9.2, 3, 2.0, 0.5);  // mid hills
   h += Math.pow(clamp(n2*0.5+0.5, 0, 1), 1.1) * 9;
   h += Noise.fbm(x*0.013+7.3, z*0.013-3.1, 3, 2.0, 0.5) * 2.8;  // small detail
-  // climbable mountain massifs
-  const MTS = [ [-780, 480, 400, 130], [620, -560, 380, 115], [350, 780, 320, 95] ];
+  // climbable mountain massifs — ridged noise gives real crests, spurs and gullies
+  const MTS = [ [-940, 580, 470, 138], [760, -680, 430, 120], [430, 940, 380, 100], [-380, -860, 350, 88] ];
   for(let i=0;i<MTS.length;i++){
     const m = MTS[i];
     const d = Math.hypot(x - m[0], z - m[1]);
     if(d < m[2]){
-      const f = Math.pow(1 - d/m[2], 1.4);
-      h += m[3] * f * (0.72 + 0.55 * (Noise.fbm(x*0.008 + i*13.7, z*0.008 - i*7.1, 3, 2.0, 0.5)*0.5 + 0.5));
+      const f = Math.pow(1 - d/m[2], 1.35);
+      const rn = clamp(1 - Math.abs(Noise.fbm((x+wx*0.3)*0.0062 + i*13.7, (z+wz*0.3)*0.0062 - i*7.1, 4, 2.05, 0.5)), 0, 1);
+      h += m[3] * f * (0.40 + 0.64 * Math.pow(rn, 1.55));
     }
   }
-  const lake = 1 - smoothstep(12, 62, Math.hypot(x+150, z+60)); // shallow lake basin
+  const lake = 1 - smoothstep(15, 75, Math.hypot(x+150, z+60)); // shallow lake basin
   h = lerp(h, -3.4, Math.min(1, lake*1.5));
-  const edge = smoothstep(1000, 1230, Math.max(Math.abs(x), Math.abs(z)));
+  const edge = smoothstep(1220, 1470, Math.max(Math.abs(x), Math.abs(z)));
   h = h*(1-edge*0.92) - edge*5.0;                               // beach slopes at map rim
   return h;
 }
@@ -232,7 +247,7 @@ function pavedFactorGen(x,z){
   return rf;
 }
 
-// ---------------- terrain vertex colors ----------------
+// ---------------- terrain vertex colors (macro tint — detail lives in the shader) ----------------
 const C_GRASS_A=[0.412,0.588,0.290], C_GRASS_B=[0.290,0.463,0.216], C_DIRT=[0.553,0.443,0.302],
       C_ROCK=[0.512,0.502,0.473], C_SAND=[0.851,0.773,0.561], C_ROAD=[0.408,0.318,0.208];
 const C_DRY=[0.588,0.557,0.306];
@@ -246,7 +261,7 @@ function colorFor(x, z, h, slope, rfOverride, rpOverride){
   c = mix3(c, C_DIRT, smoothstep(0.32, 0.78, slope));                 // dirt on slopes
   c = mix3(c, C_ROCK, smoothstep(0.85, 1.30, slope));                 // rock on cliffs
   const sandF = Math.max(
-    smoothstep(1000, 1215, Math.max(Math.abs(x), Math.abs(z))),         // sand near map edges
+    smoothstep(1220, 1450, Math.max(Math.abs(x), Math.abs(z))),       // sand near map edges
     1 - smoothstep(-1.2, 0.6, h));                                    // sand in low basins
   c = mix3(c, C_SAND, sandF);
   // snowcaps on the high peaks
@@ -266,44 +281,119 @@ function colorFor(x, z, h, slope, rfOverride, rpOverride){
   return c;
 }
 
-// ---------------- build terrain (6x6 chunk meshes) + runtime height grid ----------------
-const SEG = 600, STEP = WORLD/SEG, CHUNKS = 12, CSEG = SEG/CHUNKS;
+// ---------------- build terrain (12x12 chunk meshes) + runtime height grid ----------------
+const SEG = 720, STEP = WORLD/SEG, CHUNKS = 12, CSEG = SEG/CHUNKS;
 const heightGrid = new Float32Array((SEG+1)*(SEG+1));
 const roadGrid = new Float32Array((SEG+1)*(SEG+1));
 const pavedGrid = new Float32Array((SEG+1)*(SEG+1));
+const weightBytes = new Uint8Array((SEG+1)*(SEG+1)*4);   // r=dirt road, g=paved, b=contact AO
 {
-  for(let row=0; row<=SEG; row++){
-    for(let col=0; col<=SEG; col++){
+  const N = SEG+1;
+  for(let row=0; row<N; row++){
+    for(let col=0; col<N; col++){
       const x = col*STEP-HALF, z = row*STEP-HALF;
-      heightGrid[row*(SEG+1)+col] = terrainHeightGen(x, z);
-      roadGrid[row*(SEG+1)+col] = roadFactorGen(x, z);
-      pavedGrid[row*(SEG+1)+col] = pavedFactorGen(x, z);
+      let h = baseHeight(x,z), rf = 0, rp = 0, ao = 1;
+      for(let ri=0; ri<roads.length; ri++){
+        const r = roads[ri];
+        const s = distToSeg(x,z,r);
+        if(s.d < r.hw + 4.5){
+          const f = 1 - smoothstep(r.hw, r.hw+4.5, s.d);
+          h = h*(1-f) + baseHeight(s.x, s.z)*f;                // flatten across road width
+        }
+        if(r.paved){ const v = 1 - smoothstep(r.hw*0.82, r.hw+1.6, s.d); if(v>rp) rp = v; }
+        else       { const v = 1 - smoothstep(r.hw*0.9,  r.hw+0.7, s.d); if(v>rf) rf = v; }
+      }
+      for(let bi=0; bi<buildings.length; bi++){
+        const b = buildings[bi];
+        const dx = Math.max(Math.abs(x-b.x)-b.w/2, 0);
+        const dz = Math.max(Math.abs(z-b.z)-b.d/2, 0);
+        const dd = Math.hypot(dx,dz);
+        if(dd < 8.5){
+          const f = 1 - smoothstep(0, 8.5, dd);
+          h = h*(1-f) + b.baseH*f;                             // building pads
+        }
+        if(dd < 3.4) ao = Math.min(ao, 0.68 + 0.32*smoothstep(0, 3.4, dd));   // contact shadow
+      }
+      const gi = row*N+col;
+      heightGrid[gi] = h; roadGrid[gi] = rf; pavedGrid[gi] = rp;
+      weightBytes[gi*4] = rf*255; weightBytes[gi*4+1] = rp*255;
+      weightBytes[gi*4+2] = ao*255; weightBytes[gi*4+3] = 255;
     }
   }
 }
+const weightsTex = new THREE.DataTexture(weightBytes, SEG+1, SEG+1, THREE.RGBAFormat, THREE.UnsignedByteType);
+weightsTex.wrapS = weightsTex.wrapT = THREE.ClampToEdgeWrapping;
+weightsTex.magFilter = THREE.LinearFilter; weightsTex.minFilter = THREE.LinearFilter;
+weightsTex.generateMipmaps = false; weightsTex.flipY = false;
+weightsTex.needsUpdate = true;
+
 const terrain = new THREE.Group();
 const terrainMat = new THREE.MeshStandardMaterial({ vertexColors:true, roughness:1, metalness:0 });
 terrainMat.onBeforeCompile = (shader) => {
-  shader.uniforms.uTime = { value: 0 };
+  injectAerialFog(shader);                                   // shared distance-haze (adds vAWPos)
+  shader.uniforms.uTime    = { value: 0 };
+  shader.uniforms.tGrass   = { value: DETAIL.grass };
+  shader.uniforms.tDirt    = { value: DETAIL.dirt };
+  shader.uniforms.tRock    = { value: DETAIL.rock };
+  shader.uniforms.tSand    = { value: DETAIL.sand };
+  shader.uniforms.tSnow    = { value: DETAIL.snow };
+  shader.uniforms.tAsph    = { value: DETAIL.asphalt };
+  shader.uniforms.tWeights = { value: weightsTex };
+  // world xz -> weights-texture uv (texel centers on the height grid)
+  shader.uniforms.uWMap = { value: new THREE.Vector2(1/(STEP*(SEG+1)), (HALF/STEP + 0.5)/(SEG+1)) };
   terrainMat.userData.shader = shader;
   shader.vertexShader = shader.vertexShader
-    .replace('#include <common>', '#include <common>\nvarying vec3 vWPos;')
-    .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWPos = (modelMatrix * vec4(position,1.0)).xyz;');
+    .replace('#include <common>', '#include <common>\nvarying vec3 vNrmW;')
+    .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvNrmW = objectNormal;');
   shader.fragmentShader = shader.fragmentShader
     .replace('#include <common>', ['#include <common>',
-      'varying vec3 vWPos; uniform float uTime;',
+      'varying vec3 vNrmW; uniform float uTime;',
+      'uniform sampler2D tGrass, tDirt, tRock, tSand, tSnow, tAsph, tWeights;',
+      'uniform vec2 uWMap;',
       'float thash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453123); }',
       'float tnoise(vec2 p){ vec2 i=floor(p); vec2 f=fract(p); f=f*f*(3.0-2.0*f);',
       '  return mix(mix(thash(i),thash(i+vec2(1,0)),f.x), mix(thash(i+vec2(0,1)),thash(i+vec2(1,1)),f.x), f.y); }'].join('\n'))
     .replace('#include <color_fragment>', ['#include <color_fragment>',
-      '{ float micro = tnoise(vWPos.xz*2.1)*0.5 + tnoise(vWPos.xz*7.3)*0.5;',   // ground grain
-      '  diffuseColor.rgb *= 0.90 + micro*0.18;',
-      '  float cl = tnoise(vWPos.xz*0.0045 + vec2(uTime*0.009, uTime*0.006));', // cloud shadows
+      '{',
+      '  vec3 nrm = normalize(vNrmW);',
+      '  float slope = length(nrm.xz) / max(nrm.y, 0.04);',
+      '  vec2 wuv = vAWPos.xz;',
+      // detail layers, each sampled at two scales to hide the tiling
+      '  vec3 dGrass = mix(texture2D(tGrass, wuv*0.31).rgb, texture2D(tGrass, wuv*0.047).rgb, 0.38) * 2.0;',
+      '  vec3 dDirt  = mix(texture2D(tDirt,  wuv*0.27).rgb, texture2D(tDirt,  wuv*0.041).rgb, 0.34) * 2.0;',
+      '  vec3 dRock  = mix(texture2D(tRock,  wuv*0.115).rgb, texture2D(tRock, wuv*0.023).rgb, 0.44) * 2.0;',
+      '  vec3 dSand  = texture2D(tSand, wuv*0.35).rgb * 2.0;',
+      '  vec3 dSnow  = texture2D(tSnow, wuv*0.22).rgb * 2.0;',
+      '  vec3 dAsph  = texture2D(tAsph, wuv*0.42).rgb * 2.0;',
+      '  vec4 wts = texture2D(tWeights, vAWPos.xz*uWMap.x + vec2(uWMap.y));',
+      // choose the detail material per pixel, mirroring the macro color rules
+      '  float dirtW = clamp(smoothstep(0.30, 0.74, slope)*1.15, 0.0, 1.0);',
+      '  float rockW = smoothstep(0.80, 1.25, slope);',
+      '  float sandW = max(smoothstep(1220.0, 1450.0, max(abs(vAWPos.x), abs(vAWPos.z))), 1.0 - smoothstep(-1.2, 0.6, vAWPos.y));',
+      '  float snowW = smoothstep(82.0, 105.0, vAWPos.y) * (1.0 - smoothstep(1.3, 1.9, slope));',
+      '  vec3 det = dGrass;',
+      '  det = mix(det, dDirt, dirtW);',
+      '  det = mix(det, dRock, rockW);',
+      '  det = mix(det, dSand, sandW);',
+      '  det = mix(det, dSnow, snowW);',
+      '  diffuseColor.rgb *= det;',
+      // crisp per-pixel roads — vertex colors stay clean landscape, roads are painted here
+      '  float rNz = tnoise(wuv*0.9);',
+      '  float dirtRoad = smoothstep(0.30, 0.62, wts.r);',
+      '  vec3 dirtRoadCol = vec3(0.408, 0.318, 0.208) * (0.88 + 0.24*rNz) * dDirt;',
+      '  diffuseColor.rgb = mix(diffuseColor.rgb, dirtRoadCol, dirtRoad*0.92);',
+      '  float shoulder = smoothstep(0.06, 0.40, wts.g) * (1.0 - smoothstep(0.40, 0.60, wts.g));',
+      '  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.40, 0.345, 0.26)*dDirt, shoulder*0.6);',
+      '  float paved = smoothstep(0.42, 0.58, wts.g);',
+      '  vec3 asphCol = vec3(0.175, 0.175, 0.19) * (0.92 + 0.16*tnoise(wuv*0.23)) * dAsph;',
+      '  diffuseColor.rgb = mix(diffuseColor.rgb, asphCol, paved);',
+      '  diffuseColor.rgb *= wts.b;',                                     // building contact AO
+      '  float cl = tnoise(vAWPos.xz*0.0045 + vec2(uTime*0.009, uTime*0.006));', // cloud shadows
       '  cl = smoothstep(0.38, 0.78, cl);',
-      '  diffuseColor.rgb *= 1.0 - cl*0.16; }'].join('\n'));
+      '  diffuseColor.rgb *= 1.0 - cl*0.16;',
+      '}'].join('\n'));
 };
 {
-  const e = 1.1;
   const gridH = (col,row) => heightGrid[clamp(row,0,SEG)*(SEG+1)+clamp(col,0,SEG)];
   for(let cj=0; cj<CHUNKS; cj++){
     for(let ci=0; ci<CHUNKS; ci++){
@@ -313,6 +403,7 @@ terrainMat.onBeforeCompile = (shader) => {
       g.translate((ci+0.5)*size - HALF, 0, (cj+0.5)*size - HALF);
       const pos = g.attributes.position;
       const cols = new Float32Array(pos.count*3);
+      const nors = new Float32Array(pos.count*3);
       for(let i=0;i<pos.count;i++){
         const x = pos.getX(i), z = pos.getZ(i);
         const col = Math.round((x+HALF)/STEP), row = Math.round((z+HALF)/STEP);
@@ -320,14 +411,16 @@ terrainMat.onBeforeCompile = (shader) => {
         pos.setY(i, h);
         const sx = (gridH(col+1,row)-gridH(col-1,row))/(2*STEP);
         const sz = (gridH(col,row+1)-gridH(col,row-1))/(2*STEP);
+        // smooth analytic normal from the height grid (no facets, no shader derivatives)
+        const inv = 1/Math.sqrt(sx*sx + 1 + sz*sz);
+        nors[i*3] = -sx*inv; nors[i*3+1] = inv; nors[i*3+2] = -sz*inv;
         const gi = clamp(row,0,SEG)*(SEG+1)+clamp(col,0,SEG);
-        const c = colorFor(x, z, h, Math.hypot(sx,sz), roadGrid[gi], pavedGrid[gi]);
+        const c = colorFor(x, z, h, Math.hypot(sx,sz), 0, 0);   // roads painted per-pixel instead
         cols[i*3]=c[0]; cols[i*3+1]=c[1]; cols[i*3+2]=c[2];
       }
       g.setAttribute('color', new THREE.BufferAttribute(cols,3));
-      const flat = g.toNonIndexed();               // per-face normals, no shader derivatives
-      flat.computeVertexNormals();
-      const m = new THREE.Mesh(flat, terrainMat);
+      g.setAttribute('normal', new THREE.BufferAttribute(nors,3));
+      const m = new THREE.Mesh(g, terrainMat);
       m.receiveShadow = true;
       terrain.add(m);
     }
