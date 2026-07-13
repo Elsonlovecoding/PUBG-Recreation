@@ -4,7 +4,8 @@
 // ---------------- player ----------------
 const player = {
   pos: new THREE.Vector3(), vel: new THREE.Vector3(),
-  yaw: 0, pitch: 0, hp: 100, armor: 0, alive: true, grounded: false,
+  yaw: 0, pitch: 0, hp: 100, alive: true, grounded: false,
+  gear: { vest: 0, helmet: 0, boots: 0 },   // armor pieces, lvl 0-3 — all found as loot
   bobPhase: 0, bobAmt: 0, kills: 0,
   weapon: 'rifle',
   owned: {

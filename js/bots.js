@@ -90,7 +90,7 @@ function buildBotMesh(i, weapon){
   const legR = limb( 0.16, 0.74, legGeo());
   g.scale.setScalar(randRange(0.95, 1.06));
   return { g, armL, armR, legL, legR, mats: [mat],
-           armor: (hasVest ? 50 : 0) + (hg === 0 ? 40 : hg === 1 ? 25 : 0) };
+           gear: { vest: hasVest ? 2 : 0, helmet: hg === 0 ? 3 : hg === 1 ? 1 : 0, boots: 0 } };
 }
 
 for(let i=0;i<BOT_COUNT;i++){
@@ -99,7 +99,7 @@ for(let i=0;i<BOT_COUNT;i++){
   const bot = {
     group: parts.g, armL: parts.armL, armR: parts.armR, legL: parts.legL, legR: parts.legR,
     mats: parts.mats,
-    name: BOT_NAMES[i], hp: 100, armor: parts.armor, alive: true, active: true,
+    name: BOT_NAMES[i], hp: 100, gear: parts.gear, alive: true, active: true,
     weapon,
     medkits: Math.floor(Math.random()*3), frags: (i % 5 === 0) ? 2 : 0, grenCd: randRange(4, 10),
     healT: 0,
@@ -177,7 +177,7 @@ function botThink(b){
     const d = Math.hypot(c.group.position.x - p.x, c.group.position.z - p.z);
     if(d < 2.4 && Math.abs(c.group.position.y - p.y) < 2){
       if(c.loot === 'medkit' && b.medkits < 2){ b.medkits++; c.taken = true; scene.remove(c.group); }
-      else if(c.loot === 'armor' && b.armor < 60){ b.armor = Math.min(100, b.armor + 60); c.taken = true; scene.remove(c.group); }
+      else if(GEAR[c.loot] && c.lv > b.gear[c.loot]){ b.gear[c.loot] = c.lv; c.taken = true; scene.remove(c.group); }
       else if(c.loot === 'frag' && b.frags < 2){ b.frags++; c.taken = true; scene.remove(c.group); }
     }
   }
@@ -357,18 +357,17 @@ function updateBot(b, dt){
 // ---------------- damage / kills ----------------
 const gameState = { playing:false, over:false, startedAt:0 };
 function aliveBotCount(){ let n=0; for(const b of bots) if(b.alive) n++; return n; }
-function absorb(dmg, wearer){
-  // armor soaks 70% of incoming damage while it lasts
-  if(wearer.armor > 0){
-    const soaked = Math.min(wearer.armor, dmg * 0.7);
-    wearer.armor -= soaked;
-    return dmg - soaked;
-  }
-  return dmg;
+const GEAR = {
+  vest:   { label: 'SHIRT ARMOR', red: [0, 0.08, 0.14, 0.20] },
+  helmet: { label: 'HELMET',      red: [0, 0.04, 0.07, 0.10] },
+  boots:  { label: 'BOOTS',       red: [0, 0.02, 0.03, 0.05] },
+};
+function gearReduction(g){
+  return GEAR.vest.red[g.vest] + GEAR.helmet.red[g.helmet] + GEAR.boots.red[g.boots];
 }
 function damageBot(bot, dmg, killerName, attacker){
   if(!bot.alive || !bot.active) return;
-  bot.hp -= absorb(dmg, bot);
+  bot.hp -= dmg * (1 - gearReduction(bot.gear));
   if(killerName === 'You') showHitmarker();
   if(attacker){
     const ap = attacker === 'player' ? player.pos : attacker.group.position;
@@ -390,7 +389,7 @@ function damageBot(bot, dmg, killerName, attacker){
 }
 function damagePlayer(dmg, killerName){
   if(!player.alive || !gameState.playing) return;
-  player.hp -= absorb(dmg, player);
+  player.hp -= dmg * (1 - gearReduction(player.gear));
   flashVignette();
   SFX.hurt();
   updateHealthHUD(); updateArmorHUD();

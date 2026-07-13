@@ -17,7 +17,7 @@ From the lobby, customize your character and weapon slots, hit PLAY, and queue i
 | **Space** | Jump |
 | **R** | Reload |
 | **1 / 2 / 3** | Switch between rifle / shotgun / sniper |
-| **E** | Open the inventory — click a medkit or grenade to take it in hand |
+| **E** | Open the inventory — use medkits/grenades and check your equipped armor |
 | **Click** (item in hand) | Apply the medkit (4s cast) or throw the grenade |
 | **F** | Jump from the plane · enter / exit a vehicle (prompt appears when close) |
 | **V** | Toggle first / third person — works while parachuting too |
@@ -62,7 +62,7 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 - Full procedural soundscape (Web Audio, no files): panned distance-muffled gunshots, footsteps, reloads, explosions, sirens, engine/plane/freefall loops
 - Loot with typed ammo — 5.56 for the rifle, 12-gauge shells, 7.62 for the sniper — plus armor vests, medkits, frag and smoke grenades, all as recognizable 3D models
 - Real smoke: soft round sprite clouds ~18 m across that sit where they land for 20 seconds and genuinely blind bots (inside or through)
-- Armor bar soaks 70% of damage; bots' helmets and vests grant them the same protection
+- Three armor pieces — shirt armor, helmet, boots — in three levels each, found only as loot (you start with none); higher-level pieces replace lower ones, total damage reduction reaches 35%, the E-inventory lists your equipment, and an equipped helmet shows on your character; bots' visible helmets and vests grant them the same protection
 - Eight buggies parked along the roads with a PUBG-style "F — DRIVE" prompt, slope physics, run-overs and explosive wrecks
 - 39 bots that hear gunfire, hunt attackers, loot crates, heal behind cover, throw grenades, and rotate to the next zone circle early
 - Sniper: click fires instantly when scoped; from the hip, hold and release for a deliberate shot

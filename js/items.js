@@ -40,12 +40,21 @@ function holsterItem(){
 // ---------------- inventory panel (E) ----------------
 let inventoryOpen = false;
 const invEl = document.getElementById('inventory');
+function refreshGearRows(){
+  for(const piece of ['helmet','vest','boots']){
+    const el = document.getElementById('gear-' + piece);
+    const lv = player.gear[piece];
+    el.textContent = lv > 0 ? 'LV ' + lv : '—';
+    el.className = 'glv' + (lv > 0 ? ' l' + lv : '');
+  }
+}
 function refreshInventory(){
   for(const t of ['medkit','frag','smoke']){
     const row = invEl.querySelector('[data-item="' + t + '"]');
     row.querySelector('.ct').textContent = '×' + player.items[t];
     row.className = 'invrow' + (player.items[t] > 0 ? '' : ' empty');
   }
+  refreshGearRows();
 }
 function openInventory(){
   if(inventoryOpen || !player.alive) return;
@@ -246,11 +255,12 @@ function tryPickup(c){
     player.owned[A.w].reserve += A.n;
     showToast('PICKED UP ' + A.label + ' ×' + A.n);
     updateAmmoHUD();
-  } else if(c.loot === 'armor'){
-    if(player.armor >= 100) return;
-    player.armor = Math.min(100, player.armor + 60);
-    showToast('ARMOR EQUIPPED (' + Math.round(player.armor) + ')');
+  } else if(GEAR[c.loot]){
+    if(c.lv <= player.gear[c.loot]){ return; }            // keep the better piece, leave the crate
+    player.gear[c.loot] = c.lv;
+    showToast('EQUIPPED LVL ' + c.lv + ' ' + GEAR[c.loot].label);
     updateArmorHUD();
+    refreshGearRows();
   } else {
     const W = WEAPONS[c.loot];
     player.owned[c.loot].reserve += W.mag * 2;

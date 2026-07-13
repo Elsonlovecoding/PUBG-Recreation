@@ -190,7 +190,8 @@ function updateHealthHUD(){
   document.getElementById('hptext').textContent = Math.ceil(player.hp);
 }
 function updateArmorHUD(){
-  document.getElementById('armorfill').style.width = clamp(player.armor,0,100) + '%';
+  // bar = total damage reduction from gear (maxes at 35% with three lvl-3 pieces)
+  document.getElementById('armorfill').style.width = (gearReduction(player.gear) / 0.35 * 100) + '%';
 }
 function updateAmmoHUD(){
   const holdingItem = player.holding !== 'gun';

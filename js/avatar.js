@@ -135,7 +135,9 @@ function applyOutfit(shirtHex, pantsHex, skinHex, headKey){
   avatar.shirtM.color.setHex(shirtHex);
   avatar.pantsM.color.setHex(pantsHex);
   avatar.skinM.color.setHex(skinHex);
-  for(const k in avatar.headgear)
+  avatar.currentHead = headKey;
+  avatar.shownHead = headKey;
+  for(const k of Object.keys(avatar.headgear))
     for(const m of avatar.headgear[k]) m.visible = (k === headKey);
 }
 
@@ -172,7 +174,14 @@ function updateAvatar(dt){
   a.group.visible = thirdBlend > 0.35;
   a.group.position.copy(player.pos);
   a.group.rotation.y = player.yaw + Math.PI;
-  a.vest.visible = player.armor > 0;
+  a.vest.visible = player.gear.vest > 0;
+  // an equipped helmet overrides your chosen headgear
+  const hlv = player.gear.helmet;
+  const wantHead = hlv >= 3 ? 'helmet3' : hlv >= 1 ? 'helmet1' : (a.currentHead || 'hair');
+  if(a.shownHead !== wantHead){
+    a.shownHead = wantHead;
+    for(const k in a.headgear) for(const m of a.headgear[k]) m.visible = (k === wantHead);
+  }
   for(const w in a.guns) a.guns[w].visible = player.holding === 'gun' && w === player.weapon;
   for(const it in a.items) a.items[it].visible = player.holding === it;
 

@@ -188,9 +188,29 @@ function makeSmokeModel(){
   top.position.y = 0.20; g.add(top);
   return g;
 }
-function makeArmorModel(){
+const GEAR_LV_COLORS = [0, 0xb8bcbe, 0x4a86c0, 0x2e3438];   // lvl 1 light, 2 blue, 3 dark
+function makeHelmetModel(lv){
   const g = new THREE.Group();
-  const kevlar = new THREE.MeshStandardMaterial({ color:0x39414a, flatShading:true, roughness:0.9 });
+  const m = new THREE.MeshStandardMaterial({ color:GEAR_LV_COLORS[lv]||0xb8bcbe, flatShading:true, roughness:0.8 });
+  const dome = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.24, 0.40), m); g.add(dome);
+  const brim = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.07, 0.44), m);
+  brim.position.y = -0.13; g.add(brim);
+  return g;
+}
+function makeBootsModel(lv){
+  const g = new THREE.Group();
+  const m = new THREE.MeshStandardMaterial({ color:GEAR_LV_COLORS[lv]||0x4a3a2a, flatShading:true, roughness:0.9 });
+  for(const sx of [-0.11, 0.11]){
+    const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.20, 0.16), m);
+    shaft.position.set(sx, 0.04, -0.03); g.add(shaft);
+    const toe = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.09, 0.28), m);
+    toe.position.set(sx, -0.02, 0.05); g.add(toe);
+  }
+  return g;
+}
+function makeArmorModel(lv){
+  const g = new THREE.Group();
+  const kevlar = new THREE.MeshStandardMaterial({ color:GEAR_LV_COLORS[lv]||0x39414a, flatShading:true, roughness:0.9 });
   const strap = new THREE.MeshStandardMaterial({ color:0x23282e, flatShading:true, roughness:0.9 });
   const plate = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.52, 0.16), kevlar); g.add(plate);
   for(const sx of [-1, 1]){
@@ -204,8 +224,11 @@ function makeArmorModel(){
 
 // ---------------- loot crates ----------------
 const crates = [];
-const CRATE_LOOT = ['ammo_rifle','medkit','armor','ammo_sniper','frag','rifle','ammo_shotgun','medkit','smoke','armor',
-  'ammo_rifle','frag','sniper','ammo_sniper','medkit','shotgun','ammo_shotgun','smoke','armor','ammo_rifle'];
+const CRATE_LOOT = ['ammo_rifle','medkit','vest','ammo_sniper','frag','rifle','ammo_shotgun','medkit','smoke','helmet',
+  'ammo_rifle','frag','sniper','ammo_sniper','medkit','shotgun','ammo_shotgun','smoke','boots','ammo_rifle',
+  'vest','medkit','helmet','boots'];
+const GEAR_PIECES = ['vest','helmet','boots'];
+function rollGearLevel(){ const r = Math.random(); return r < 0.5 ? 1 : r < 0.85 ? 2 : 3; }
 const AMMO_INFO = {
   ammo_rifle:   { w:'rifle',   n:60, label:'5.56 AMMO',       band:0xd8a03c },
   ammo_shotgun: { w:'shotgun', n:12, label:'12-GAUGE SHELLS', band:0xc04430 },
@@ -235,27 +258,30 @@ const crateBaseGeo = (() => {
   }
   return mergeGeoms(arr);
 })();
-function lootIcon(loot){
+function lootIcon(loot, lv){
   let icon;
   if(loot === 'medkit') icon = makeMedkitModel();
   else if(loot === 'frag'){ icon = makeGrenadeModel(); icon.scale.setScalar(1.6); }
   else if(loot === 'smoke'){ icon = makeSmokeModel(); icon.scale.setScalar(1.5); }
-  else if(loot === 'armor') icon = makeArmorModel();
+  else if(loot === 'vest') icon = makeArmorModel(lv);
+  else if(loot === 'helmet'){ icon = makeHelmetModel(lv); icon.scale.setScalar(1.3); }
+  else if(loot === 'boots'){ icon = makeBootsModel(lv); icon.scale.setScalar(1.5); }
   else if(loot.indexOf('ammo_') === 0){ icon = makeAmmoModel(loot); icon.scale.setScalar(1.5); }
   else { icon = buildGunModel(loot, false); icon.scale.setScalar(0.85); }   // miniature of the weapon
   return icon;
 }
 function placeCrate(x, y, z, loot){
+  const lv = GEAR_PIECES.indexOf(loot) !== -1 ? rollGearLevel() : 0;
   const g = new THREE.Group();
   const base = new THREE.Mesh(crateBaseGeo, MAT_FLAT);
   base.castShadow = true;
   g.add(base);
-  const icon = lootIcon(loot);
+  const icon = lootIcon(loot, lv);
   icon.position.y = 1.35; g.add(icon);
   g.position.set(x, y, z);
   g.rotation.y = randRange(0, Math.PI);
   scene.add(g);
-  crates.push({ group:g, icon, loot, taken:false });
+  crates.push({ group:g, icon, loot, lv, taken:false });
 }
 let crateIdx = 0;
 buildings.forEach((b) => {
@@ -264,6 +290,6 @@ buildings.forEach((b) => {
   if(b.style === 'apartment'){
     // bonus loot on the walk-up second floor
     const ux = b.x + randRange(-b.w*0.15, b.w*0.15), uz = b.z + randRange(-b.d*0.15, b.d*0.15);
-    placeCrate(ux, b.baseH + 0.34 + 3.0 + 0.11, uz, ['armor','ammo_sniper','medkit','frag'][crateIdx % 4]);
+    placeCrate(ux, b.baseH + 0.34 + 3.0 + 0.11, uz, ['vest','ammo_sniper','helmet','frag'][crateIdx % 4]);
   }
 });
