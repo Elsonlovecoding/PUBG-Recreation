@@ -207,6 +207,7 @@ document.addEventListener('keydown', e => {
   if(e.code === 'KeyV' && player.alive && player.dropState !== 'plane') toggleView();
   if(inventoryOpen || player.driving || player.dropState !== 'none') return;
   if(e.code === 'KeyR') startReload();
+  if(e.code === 'KeyM') toggleBigMap();
   if(e.code === 'Digit1') setWeapon(slotConfig[0]);
   if(e.code === 'Digit2') setWeapon(slotConfig[1]);
   if(e.code === 'Digit3') setWeapon(slotConfig[2]);

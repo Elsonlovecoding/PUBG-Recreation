@@ -97,7 +97,8 @@ function updateZone(dt){
 const mapCanvas = document.getElementById('minimap');
 const mapCtx = mapCanvas.getContext('2d');
 const MAP_S = 190;
-const MBG = 264;
+const MAP_VIEW = 500;          // the corner minimap shows this many meters around you
+const MBG = 512;               // prerender resolution (shared with the fullscreen map)
 const mapBg = document.createElement('canvas');
 mapBg.width = MBG; mapBg.height = MBG;
 {
@@ -122,63 +123,184 @@ mapBg.width = MBG; mapBg.height = MBG;
     bctx.fillRect((b.x-b.w/2+HALF)/WORLD*MBG, (b.z-b.d/2+HALF)/WORLD*MBG, b.w/WORLD*MBG+1, b.d/WORLD*MBG+1);
   }
 }
-function W2M(v){ return (v+HALF)/WORLD*MAP_S; }
+// the corner minimap is a local window: MAP_VIEW meters centered on you
 function drawMinimap(){
-  mapCtx.drawImage(mapBg, 0, 0, MAP_S, MAP_S);
-  // darken outside current zone
+  const cx = player.pos.x, cz = player.pos.z;
+  const LX = v => (v - cx + MAP_VIEW/2) / MAP_VIEW * MAP_S;
+  const LZ = v => (v - cz + MAP_VIEW/2) / MAP_VIEW * MAP_S;
+  mapCtx.fillStyle = '#2a5c74';                                // open sea beyond the island
+  mapCtx.fillRect(0, 0, MAP_S, MAP_S);
+  // visible sub-rect of the prerendered island (clamped by hand)
+  let sx = (cx - MAP_VIEW/2 + HALF)/WORLD * MBG, sz = (cz - MAP_VIEW/2 + HALF)/WORLD * MBG;
+  const sw = MAP_VIEW/WORLD * MBG, pxm = MAP_S / sw;           // map px per bg px
+  let dx = 0, dz = 0, w = sw, h = sw;
+  if(sx < 0){ dx = -sx*pxm; w += sx; sx = 0; }
+  if(sz < 0){ dz = -sz*pxm; h += sz; sz = 0; }
+  if(sx + w > MBG) w = MBG - sx;
+  if(sz + h > MBG) h = MBG - sz;
+  if(w > 0 && h > 0) mapCtx.drawImage(mapBg, sx, sz, w, h, dx, dz, w*pxm, h*pxm);
+  // darken outside the current zone
   mapCtx.save();
   mapCtx.beginPath();
-  mapCtx.rect(0,0,MAP_S,MAP_S);
-  mapCtx.arc(W2M(zone.cx), W2M(zone.cz), zone.r/WORLD*MAP_S, 0, Math.PI*2, true);
+  mapCtx.rect(0, 0, MAP_S, MAP_S);
+  mapCtx.arc(LX(zone.cx), LZ(zone.cz), zone.r/MAP_VIEW*MAP_S, 0, Math.PI*2, true);
   mapCtx.fillStyle = 'rgba(20,40,80,0.38)';
   mapCtx.fill('evenodd');
   mapCtx.restore();
-  mapCtx.strokeStyle = 'rgba(90,170,255,0.95)'; mapCtx.lineWidth = 1.6;
-  mapCtx.beginPath(); mapCtx.arc(W2M(zone.cx), W2M(zone.cz), zone.r/WORLD*MAP_S, 0, Math.PI*2); mapCtx.stroke();
+  mapCtx.strokeStyle = 'rgba(90,170,255,0.95)'; mapCtx.lineWidth = 1.8;
+  mapCtx.beginPath(); mapCtx.arc(LX(zone.cx), LZ(zone.cz), zone.r/MAP_VIEW*MAP_S, 0, Math.PI*2); mapCtx.stroke();
   if(zone.state === 'shrink' || zone.tr < zone.r){
-    mapCtx.strokeStyle = 'rgba(255,255,255,0.9)'; mapCtx.lineWidth = 1.2;
-    mapCtx.beginPath(); mapCtx.arc(W2M(zone.tcx), W2M(zone.tcz), zone.tr/WORLD*MAP_S, 0, Math.PI*2); mapCtx.stroke();
+    mapCtx.strokeStyle = 'rgba(255,255,255,0.9)'; mapCtx.lineWidth = 1.3;
+    mapCtx.beginPath(); mapCtx.arc(LX(zone.tcx), LZ(zone.tcz), zone.tr/MAP_VIEW*MAP_S, 0, Math.PI*2); mapCtx.stroke();
   }
   // plane path + plane while the drop is live
   if(dropActive && plane.visible){
     mapCtx.strokeStyle = 'rgba(255,255,255,0.55)';
     mapCtx.setLineDash([4,4]);
     mapCtx.beginPath();
-    mapCtx.moveTo(W2M(dropPath.sx), W2M(dropPath.sz));
-    mapCtx.lineTo(W2M(dropPath.ex), W2M(dropPath.ez));
+    mapCtx.moveTo(LX(dropPath.sx), LZ(dropPath.sz));
+    mapCtx.lineTo(LX(dropPath.ex), LZ(dropPath.ez));
     mapCtx.stroke();
     mapCtx.setLineDash([]);
     const pp = planePos(planeT);
     mapCtx.fillStyle = '#fff';
-    mapCtx.beginPath(); mapCtx.arc(W2M(pp.x), W2M(pp.z), 3, 0, Math.PI*2); mapCtx.fill();
+    mapCtx.beginPath(); mapCtx.arc(LX(pp.x), LZ(pp.z), 3, 0, Math.PI*2); mapCtx.fill();
   }
+  const inView = (x, z, pad) => Math.abs(x - cx) < MAP_VIEW/2 + pad && Math.abs(z - cz) < MAP_VIEW/2 + pad;
   // vehicles
   mapCtx.fillStyle = 'rgba(120,200,255,0.9)';
   for(const v of vehicles){
-    if(!v.alive) continue;
-    mapCtx.fillRect(W2M(v.group.position.x)-2, W2M(v.group.position.z)-2, 4, 4);
+    if(!v.alive || !inView(v.group.position.x, v.group.position.z, 12)) continue;
+    mapCtx.fillRect(LX(v.group.position.x)-2.5, LZ(v.group.position.z)-2.5, 5, 5);
   }
   // bots
   mapCtx.fillStyle = '#e33';
   for(const b of bots){
-    if(!b.alive || !b.active) continue;
+    if(!b.alive || !b.active || !inView(b.group.position.x, b.group.position.z, 8)) continue;
     mapCtx.beginPath();
-    mapCtx.arc(W2M(b.group.position.x), W2M(b.group.position.z), 2.1, 0, Math.PI*2);
+    mapCtx.arc(LX(b.group.position.x), LZ(b.group.position.z), 2.6, 0, Math.PI*2);
     mapCtx.fill();
   }
-  // player arrow
+  // player arrow, fixed at the center
   if(player.alive){
     const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
     mapCtx.save();
-    mapCtx.translate(W2M(player.pos.x), W2M(player.pos.z));
+    mapCtx.translate(MAP_S/2, MAP_S/2);
     mapCtx.rotate(Math.atan2(fz, fx));
     mapCtx.fillStyle = '#fff';
     mapCtx.strokeStyle = 'rgba(0,0,0,0.6)';
     mapCtx.beginPath();
-    mapCtx.moveTo(5.5,0); mapCtx.lineTo(-3.5,3.2); mapCtx.lineTo(-3.5,-3.2); mapCtx.closePath();
+    mapCtx.moveTo(6,0); mapCtx.lineTo(-4,3.6); mapCtx.lineTo(-4,-3.6); mapCtx.closePath();
     mapCtx.fill(); mapCtx.stroke();
     mapCtx.restore();
   }
+}
+
+// ---------------- fullscreen map (M) ----------------
+const bigmapEl = document.getElementById('bigmap');
+const bigCtx = document.getElementById('bigmapcv').getContext('2d');
+let bigMapOpen = false;
+const MAP_LABELS = [
+  ['KARONA CITY', -390, 60], ['OAKFIELD', 0, 6], ['RIVERSIDE', -268, 182],
+  ['MILITARY DEPOT', 225, -220], ['NORTHPOINT', 130, 470], ['THE QUARRY', -492, -97],
+  ['HILLTOP FARM', 240, 252], ['EAST FARM', 698, 120], ['SOUTH RIDGE', 385, -470],
+  ['EAST CAPE', 1000, 625], ['SW CAPE', -1005, -790], ['SOUTH DOCK', 150, -1000],
+  ['NW CAPE', -945, 898], ['NE SHORE', 1420, 992], ['WEST FARM', -1450, -305],
+  ['NORTH CAPE', -864, 1416], ['SHORE DEPOT', 530, -1450],
+];
+function toggleBigMap(){
+  if(!matchStarted || gameState.over){ return; }
+  bigMapOpen = !bigMapOpen;
+  bigmapEl.classList.toggle('open', bigMapOpen);
+  if(bigMapOpen) drawBigMap();
+  SFX.click();
+}
+function drawBigMap(){
+  const S = 760;
+  const wx = v => (v + HALF)/WORLD * S;
+  bigCtx.fillStyle = '#2a5c74';
+  bigCtx.fillRect(0, 0, S, S);
+  bigCtx.drawImage(mapBg, 0, 0, S, S);
+  // 500m grid
+  bigCtx.strokeStyle = 'rgba(255,255,255,0.10)'; bigCtx.lineWidth = 1;
+  for(let g = -1500; g <= 1500; g += 500){
+    bigCtx.beginPath(); bigCtx.moveTo(wx(g), 0); bigCtx.lineTo(wx(g), S); bigCtx.stroke();
+    bigCtx.beginPath(); bigCtx.moveTo(0, wx(g)); bigCtx.lineTo(S, wx(g)); bigCtx.stroke();
+  }
+  // zone
+  bigCtx.save();
+  bigCtx.beginPath();
+  bigCtx.rect(0, 0, S, S);
+  bigCtx.arc(wx(zone.cx), wx(zone.cz), zone.r/WORLD*S, 0, Math.PI*2, true);
+  bigCtx.fillStyle = 'rgba(20,40,80,0.38)';
+  bigCtx.fill('evenodd');
+  bigCtx.restore();
+  bigCtx.strokeStyle = 'rgba(90,170,255,0.95)'; bigCtx.lineWidth = 2.2;
+  bigCtx.beginPath(); bigCtx.arc(wx(zone.cx), wx(zone.cz), zone.r/WORLD*S, 0, Math.PI*2); bigCtx.stroke();
+  if(zone.state === 'shrink' || zone.tr < zone.r){
+    bigCtx.strokeStyle = 'rgba(255,255,255,0.9)'; bigCtx.lineWidth = 1.6;
+    bigCtx.beginPath(); bigCtx.arc(wx(zone.tcx), wx(zone.tcz), zone.tr/WORLD*S, 0, Math.PI*2); bigCtx.stroke();
+  }
+  // plane path
+  if(dropActive && plane.visible){
+    bigCtx.strokeStyle = 'rgba(255,255,255,0.6)';
+    bigCtx.setLineDash([8,8]);
+    bigCtx.beginPath();
+    bigCtx.moveTo(wx(dropPath.sx), wx(dropPath.sz));
+    bigCtx.lineTo(wx(dropPath.ex), wx(dropPath.ez));
+    bigCtx.stroke();
+    bigCtx.setLineDash([]);
+    const pp = planePos(planeT);
+    bigCtx.fillStyle = '#fff';
+    bigCtx.beginPath(); bigCtx.arc(wx(pp.x), wx(pp.z), 5, 0, Math.PI*2); bigCtx.fill();
+  }
+  // vehicles + bots
+  bigCtx.fillStyle = 'rgba(120,200,255,0.9)';
+  for(const v of vehicles){
+    if(!v.alive) continue;
+    bigCtx.fillRect(wx(v.group.position.x)-2.5, wx(v.group.position.z)-2.5, 5, 5);
+  }
+  bigCtx.fillStyle = '#e33';
+  for(const b of bots){
+    if(!b.alive || !b.active) continue;
+    bigCtx.beginPath();
+    bigCtx.arc(wx(b.group.position.x), wx(b.group.position.z), 2.6, 0, Math.PI*2);
+    bigCtx.fill();
+  }
+  // place names
+  bigCtx.font = '600 13px sans-serif';
+  bigCtx.textAlign = 'center';
+  for(const [name, lx, lz] of MAP_LABELS){
+    bigCtx.strokeStyle = 'rgba(0,0,0,0.75)'; bigCtx.lineWidth = 3;
+    bigCtx.strokeText(name, wx(lx), wx(lz) - 8);
+    bigCtx.fillStyle = 'rgba(255,255,255,0.92)';
+    bigCtx.fillText(name, wx(lx), wx(lz) - 8);
+  }
+  bigCtx.textAlign = 'left';
+  // player arrow
+  if(player.alive){
+    const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+    bigCtx.save();
+    bigCtx.translate(wx(player.pos.x), wx(player.pos.z));
+    bigCtx.rotate(Math.atan2(fz, fx));
+    bigCtx.fillStyle = '#fff';
+    bigCtx.strokeStyle = 'rgba(0,0,0,0.7)'; bigCtx.lineWidth = 1.5;
+    bigCtx.beginPath();
+    bigCtx.moveTo(9,0); bigCtx.lineTo(-6,5.4); bigCtx.lineTo(-6,-5.4); bigCtx.closePath();
+    bigCtx.fill(); bigCtx.stroke();
+    bigCtx.restore();
+  }
+  // scale bar: one 500m grid square
+  const bx = 22, by = S - 26, bw = 500/WORLD*S;
+  bigCtx.strokeStyle = 'rgba(255,255,255,0.85)'; bigCtx.lineWidth = 2;
+  bigCtx.beginPath(); bigCtx.moveTo(bx, by); bigCtx.lineTo(bx + bw, by); bigCtx.stroke();
+  bigCtx.beginPath(); bigCtx.moveTo(bx, by-5); bigCtx.lineTo(bx, by+5); bigCtx.stroke();
+  bigCtx.beginPath(); bigCtx.moveTo(bx+bw, by-5); bigCtx.lineTo(bx+bw, by+5); bigCtx.stroke();
+  bigCtx.font = '600 12px sans-serif';
+  bigCtx.strokeStyle = 'rgba(0,0,0,0.75)'; bigCtx.lineWidth = 3;
+  bigCtx.strokeText('500 m', bx + bw + 10, by + 4);
+  bigCtx.fillStyle = 'rgba(255,255,255,0.9)';
+  bigCtx.fillText('500 m', bx + bw + 10, by + 4);
 }
 
 // ---------------- HUD ----------------
@@ -313,6 +435,7 @@ function endGame(win, killerName){
   setScopeUI(false);
   cancelHeal();
   closeInventory(false);
+  bigMapOpen = false; bigmapEl.classList.remove('open');
   if(player.driving){ player.driving = null; SFX.setEngine(false, 0); }
   SFX.stinger(win);
   const end = document.getElementById('endscreen');
@@ -438,7 +561,10 @@ function animate(){
   waterMat.uniforms.time.value = t;
   if(terrainMat.userData.shader) terrainMat.userData.shader.uniforms.uTime.value = t;
 
-  if(matchStarted) drawMinimap();
+  if(matchStarted){
+    drawMinimap();
+    if(bigMapOpen) drawBigMap();
+  }
   renderer.render(scene, camera);
 }
 // HUD boot + render loop start live in lobby.js (it owns slotConfig)

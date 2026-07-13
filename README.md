@@ -21,6 +21,7 @@ From the lobby, customize your character and weapon slots, hit PLAY, and queue i
 | **Click** (item in hand) | Apply the medkit (4s cast) or throw the grenade |
 | **F** | Jump from the plane · enter / exit a vehicle (prompt appears when close) |
 | **V** | Toggle first / third person — works while parachuting too |
+| **M** | Open the full island map — place names, zone, flight path; the corner minimap shows the 500 m around you |
 | **Click** (sniper, scoped) | Fires immediately |
 | **Double-click** (sniper) | Toggle the scope — stays on while you shoot; double-click again to drop it |
 | **Hold click** (sniper, hip) | Charge the shot — fires when you release |
@@ -76,5 +77,5 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 - Characters carry baked shading (sky-lit from above, shaded feet), chest rigs, belt pouches and knee pads over their gear
 - 39 bots that hear gunfire, hunt attackers, loot crates, heal behind cover, throw grenades, and rotate to the next zone circle early
 - Sniper: click fires instantly when scoped; from the hip, hold and release for a deliberate shot
-- Shrinking zone with countdown timers on every phase; kill feed, kills counter, minimap with flight path
+- Shrinking zone with countdown timers on every phase; kill feed, kills counter; the corner minimap is a 500 m local view centered on you, and M opens the full island map with named settlements, a 500 m grid, zone circles and the live flight path
 - End screen with placement banner and stat tiles (kills, damage, accuracy, survival time) plus persistent career stats
