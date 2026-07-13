@@ -2,7 +2,7 @@
 // PUBG Recreation — village/road layout, noise heightfield, vertex-colored terrain chunks
 
 // ---------------- world layout : buildings & dirt roads ----------------
-const WORLD = 2000, HALF = WORLD/2;
+const WORLD = 2500, HALF = WORLD/2;
 // clusters: Oakfield village (center), Riverside hamlet (NW), military depot (SE),
 // hilltop farm (NE) and lone houses scattered around the island
 const buildings = [
@@ -81,18 +81,43 @@ const buildings = [
   { x:-350, z:680,  w:10, d:8,  h:4.2, door:'S' },
   { x:720,  z:-420, w:10, d:8,  h:4.4, door:'W' },
   { x:-720, z:-80,  w:11, d:9,  h:4.6, door:'E' },
+  // Karona City — tower blocks on a paved grid
+  { x:-415, z:65,   w:15, d:13, h:18, door:'E', style:'tower' },
+  { x:-365, z:63,   w:14, d:12, h:21, door:'W', style:'tower' },
+  { x:-417, z:117,  w:14, d:12, h:15, door:'E', style:'tower' },
+  { x:-363, z:118,  w:15, d:13, h:24, door:'W', style:'tower' },
+  { x:-465, z:64,   w:12, d:10, h:6.4, door:'E', style:'apartment' },
+  { x:-466, z:116,  w:13, d:9,  h:6.4, door:'E', style:'apartment' },
+  { x:-313, z:64,   w:12, d:9,  h:6.2, door:'W', style:'house2' },
+  { x:-315, z:118,  w:11, d:9,  h:4.6, door:'W' },
+  { x:-440, z:14,   w:14, d:10, h:6.5, door:'N', style:'warehouse', flat:true },
+  { x:-390, z:12,   w:12, d:9,  h:4.4, door:'N' },
+  { x:-340, z:14,   w:11, d:9,  h:4.6, door:'N' },
+  { x:-441, z:166,  w:11, d:9,  h:4.4, door:'S' },
+  { x:-390, z:168,  w:12, d:10, h:6.6, door:'S', style:'barn' },
+  { x:-338, z:166,  w:10, d:8,  h:4.2, door:'S' },
 ];
 // standalone structures: farm silos + hilltop watchtowers
 const silos = [ { x:262, z:236 }, { x:388, z:-448 }, { x:716, z:122 } ];
 const towers = [ { x:250, z:60 }, { x:-300, z:-50 }, { x:500, z:400 }, { x:-560, z:-300 } ];
 const roads = [
-  { ax:0,    az:-50,  bx:0,    bz:36,   hw:2.8 },   // Oakfield main street
-  { ax:0,    az:30,   bx:-120, bz:100,  hw:2.4 },   // to Riverside
-  { ax:-120, az:100,  bx:-220, bz:180,  hw:2.4 },
-  { ax:-300, az:180,  bx:-220, bz:180,  hw:2.6 },   // Riverside street
-  { ax:0,    az:-40,  bx:110,  bz:-130, hw:2.4 },   // to the depot
-  { ax:110,  az:-130, bx:210,  bz:-218, hw:2.4 },
-  { ax:190,  az:-220, bx:258,  bz:-220, hw:2.6 },   // depot street
+  // Karona City paved grid + connectors
+  { ax:-440, az:40,  bx:-440, bz:142, hw:3.2, paved:true },
+  { ax:-390, az:38,  bx:-390, bz:144, hw:3.2, paved:true },
+  { ax:-340, az:40,  bx:-340, bz:142, hw:3.2, paved:true },
+  { ax:-468, az:90,  bx:-312, bz:90,  hw:3.4, paved:true },
+  { ax:-466, az:40,  bx:-314, bz:40,  hw:3.2, paved:true },
+  { ax:-466, az:142, bx:-314, bz:142, hw:3.2, paved:true },
+  { ax:-340, az:142, bx:-300, bz:180, hw:3.0, paved:true },   // to the hamlet
+  { ax:-440, az:40,  bx:-370, bz:-28, hw:3.0, paved:true },   // toward the west track
+  { ax:-370, az:-28, bx:-350, bz:-30, hw:2.4 },
+  { ax:0,    az:-50,  bx:0,    bz:36,   hw:3.2, paved:true },   // Oakfield main street
+  { ax:0,    az:30,   bx:-120, bz:100,  hw:3.2, paved:true },   // to Riverside
+  { ax:-120, az:100,  bx:-220, bz:180,  hw:3.2, paved:true },
+  { ax:-300, az:180,  bx:-220, bz:180,  hw:3.0, paved:true },   // Riverside street
+  { ax:0,    az:-40,  bx:110,  bz:-130, hw:3.2, paved:true },   // to the depot
+  { ax:110,  az:-130, bx:210,  bz:-218, hw:3.2, paved:true },
+  { ax:190,  az:-220, bx:258,  bz:-220, hw:3.2, paved:true },   // depot street
   { ax:0,    az:26,   bx:120,  bz:140,  hw:2.2 },   // to the farm
   { ax:120,  az:140,  bx:244,  bz:252,  hw:2.2 },
   { ax:-300, az:180,  bx:-338, bz:60,   hw:2.0 },   // west coast track
@@ -155,9 +180,19 @@ function baseHeight(x,z){
   const n2 = Noise.fbm(x*0.006-4.7, z*0.006+9.2, 3, 2.0, 0.5);  // mid hills
   h += Math.pow(clamp(n2*0.5+0.5, 0, 1), 1.1) * 9;
   h += Noise.fbm(x*0.013+7.3, z*0.013-3.1, 3, 2.0, 0.5) * 2.8;  // small detail
+  // climbable mountain massifs
+  const MTS = [ [-780, 480, 400, 130], [620, -560, 380, 115], [350, 780, 320, 95] ];
+  for(let i=0;i<MTS.length;i++){
+    const m = MTS[i];
+    const d = Math.hypot(x - m[0], z - m[1]);
+    if(d < m[2]){
+      const f = Math.pow(1 - d/m[2], 1.4);
+      h += m[3] * f * (0.72 + 0.55 * (Noise.fbm(x*0.008 + i*13.7, z*0.008 - i*7.1, 3, 2.0, 0.5)*0.5 + 0.5));
+    }
+  }
   const lake = 1 - smoothstep(12, 62, Math.hypot(x+150, z+60)); // shallow lake basin
   h = lerp(h, -3.4, Math.min(1, lake*1.5));
-  const edge = smoothstep(790, 985, Math.max(Math.abs(x), Math.abs(z)));
+  const edge = smoothstep(1000, 1230, Math.max(Math.abs(x), Math.abs(z)));
   h = h*(1-edge*0.92) - edge*5.0;                               // beach slopes at map rim
   return h;
 }
@@ -181,8 +216,18 @@ function terrainHeightGen(x,z){
 function roadFactorGen(x,z){
   let rf = 0;
   for(const r of roads){
+    if(r.paved) continue;
     const s = distToSeg(x,z,r);
     rf = Math.max(rf, 1 - smoothstep(r.hw*0.9, r.hw+0.7, s.d));   // hard shoulder
+  }
+  return rf;
+}
+function pavedFactorGen(x,z){
+  let rf = 0;
+  for(const r of roads){
+    if(!r.paved) continue;
+    const s = distToSeg(x,z,r);
+    rf = Math.max(rf, 1 - smoothstep(r.hw*0.82, r.hw+1.6, s.d));
   }
   return rf;
 }
@@ -191,7 +236,7 @@ function roadFactorGen(x,z){
 const C_GRASS_A=[0.412,0.588,0.290], C_GRASS_B=[0.290,0.463,0.216], C_DIRT=[0.553,0.443,0.302],
       C_ROCK=[0.512,0.502,0.473], C_SAND=[0.851,0.773,0.561], C_ROAD=[0.408,0.318,0.208];
 const C_DRY=[0.588,0.557,0.306];
-function colorFor(x, z, h, slope, rfOverride){
+function colorFor(x, z, h, slope, rfOverride, rpOverride){
   const n = Noise.fbm(x*0.02+11, z*0.02-7, 2, 2.0, 0.5)*0.5 + 0.5;   // grass patchiness
   let c = mix3(C_GRASS_A, C_GRASS_B, n);
   const dry = smoothstep(0.55, 0.95, Noise.fbm(x*0.008+31, z*0.008+17, 2, 2.0, 0.5)*0.5+0.5);
@@ -201,27 +246,38 @@ function colorFor(x, z, h, slope, rfOverride){
   c = mix3(c, C_DIRT, smoothstep(0.32, 0.78, slope));                 // dirt on slopes
   c = mix3(c, C_ROCK, smoothstep(0.85, 1.30, slope));                 // rock on cliffs
   const sandF = Math.max(
-    smoothstep(790, 972, Math.max(Math.abs(x), Math.abs(z))),         // sand near map edges
+    smoothstep(1000, 1215, Math.max(Math.abs(x), Math.abs(z))),         // sand near map edges
     1 - smoothstep(-1.2, 0.6, h));                                    // sand in low basins
   c = mix3(c, C_SAND, sandF);
+  // snowcaps on the high peaks
+  const snowF = smoothstep(82, 108, h) * (1 - smoothstep(1.3, 1.9, slope));
+  if(snowF > 0) c = mix3(c, [0.90, 0.92, 0.95], snowF);
   const rf = rfOverride !== undefined ? rfOverride : roadFactorGen(x,z);
   if(rf>0){
     const rc = [C_ROAD[0]*(0.9+0.2*n), C_ROAD[1]*(0.9+0.2*n), C_ROAD[2]*(0.9+0.2*n)];
     c = mix3(c, rc, Math.min(1, rf*1.25));                            // packed dirt roads
   }
+  const rp = rpOverride !== undefined ? rpOverride : pavedFactorGen(x,z);
+  if(rp > 0.02){
+    c = mix3(c, [0.42, 0.36, 0.27], Math.min(1, rp*1.9) * 0.55);      // worn shoulder
+    const asph = 0.155 + n*0.03;
+    c = mix3(c, [asph, asph, asph*1.08], smoothstep(0.38, 0.82, rp)); // asphalt
+  }
   return c;
 }
 
 // ---------------- build terrain (6x6 chunk meshes) + runtime height grid ----------------
-const SEG = 540, STEP = WORLD/SEG, CHUNKS = 12, CSEG = SEG/CHUNKS;
+const SEG = 600, STEP = WORLD/SEG, CHUNKS = 12, CSEG = SEG/CHUNKS;
 const heightGrid = new Float32Array((SEG+1)*(SEG+1));
 const roadGrid = new Float32Array((SEG+1)*(SEG+1));
+const pavedGrid = new Float32Array((SEG+1)*(SEG+1));
 {
   for(let row=0; row<=SEG; row++){
     for(let col=0; col<=SEG; col++){
       const x = col*STEP-HALF, z = row*STEP-HALF;
       heightGrid[row*(SEG+1)+col] = terrainHeightGen(x, z);
       roadGrid[row*(SEG+1)+col] = roadFactorGen(x, z);
+      pavedGrid[row*(SEG+1)+col] = pavedFactorGen(x, z);
     }
   }
 }
@@ -264,7 +320,8 @@ terrainMat.onBeforeCompile = (shader) => {
         pos.setY(i, h);
         const sx = (gridH(col+1,row)-gridH(col-1,row))/(2*STEP);
         const sz = (gridH(col,row+1)-gridH(col,row-1))/(2*STEP);
-        const c = colorFor(x, z, h, Math.hypot(sx,sz), roadGrid[clamp(row,0,SEG)*(SEG+1)+clamp(col,0,SEG)]);
+        const gi = clamp(row,0,SEG)*(SEG+1)+clamp(col,0,SEG);
+        const c = colorFor(x, z, h, Math.hypot(sx,sz), roadGrid[gi], pavedGrid[gi]);
         cols[i*3]=c[0]; cols[i*3+1]=c[1]; cols[i*3+2]=c[2];
       }
       g.setAttribute('color', new THREE.BufferAttribute(cols,3));

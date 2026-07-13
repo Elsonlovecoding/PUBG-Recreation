@@ -6,7 +6,7 @@ A low-poly battle royale shooter for the browser, built with [Three.js](https://
 
 ## How to play
 
-From the lobby, customize your character and weapon slots, hit PLAY, and queue into a match. A cargo plane then carries 40 combatants across a 2 km × 2 km island — pick your moment, press F, and parachute in. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates for typed ammo, armor, medkits and grenades, grab a roadside buggy to rotate, and watch the kill feed. The island has four villages, a military depot, a quarry, farms with silos, watchtowers, lone houses and a lake, all linked by dirt roads.
+From the lobby, customize your character and weapon slots, hit PLAY, and queue into a match. A cargo plane then carries 40 combatants across a 2.5 km × 2.5 km island — pick your moment, press F, and parachute in. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates for typed ammo, armor, medkits and grenades, grab a roadside buggy to rotate, and watch the kill feed. The island has Karona City with its concrete tower blocks, four villages, a military depot, a quarry, farms with silos, watchtowers, lone houses, a lake and three snow-capped mountains — all linked by paved highways and dirt tracks.
 
 | Input | Action |
 |---|---|
@@ -55,15 +55,17 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 - Sniper scope lock: double-click to latch the scope and keep firing scoped shots; right-click drops back out (hold right-click still works for quick peeks)
 - PUBG-style lobby inside a private hangar: your character stands full-height on a lit spawn pad; profile card with editable name/level top-left, WARDROBE / LOADOUT / STATISTICS / CONTROLS cards top-right, rotating tips above a big angled gold START; wardrobe and weapon-slot choices persist, and matchmaking runs as a banner before deploying
 
-- Procedural 2 km × 2 km island with domain-warped ridgelines, crisp dirt roads, sand beaches and a lake; ~63 buildings across eleven settlement sites
-- Building variety: houses, two-storey houses, walk-up apartments with real second floors and outside staircases (bonus loot upstairs), barns, sheds, flat-roof warehouses with roll doors, farm silos and hilltop watchtowers, in six paint palettes
+- Procedural 2.5 km × 2.5 km island with domain-warped ridgelines, three real fBm-shaped mountains that rise past 150 m into bare rock and snowcaps (trees stop at the treeline), sand beaches and a lake; ~76 buildings across twelve settlement sites
+- Karona City: four concrete high-rise towers (15–24 m, full window grids, parapets and rooftop stairhouses) plus apartments, a warehouse and houses on a paved street grid
+- Real roads: asphalt-colored paved avenues and arterials with worn dirt shoulders link the city, villages and depot, while farm tracks stay dirt — and buggies park along both
+- Building variety: houses, two-storey houses, walk-up apartments with real second floors and outside staircases (bonus loot upstairs), barns, sheds, flat-roof warehouses with roll doors, farm silos and hilltop watchtowers, in six paint palettes (plus two concrete facades for the towers)
 - Third-person view on V — see your own character (with your actual weapon in hand), over-shoulder camera with collision, automatic during the parachute drop
 - The match opens with a cargo-plane drop; all 39 bots bail out along the flight path under their own canopies
 - Full procedural soundscape (Web Audio, no files): panned distance-muffled gunshots, footsteps, reloads, explosions, sirens, engine/plane/freefall loops
 - Loot with typed ammo — 5.56 for the rifle, 12-gauge shells, 7.62 for the sniper — plus armor vests, medkits, frag and smoke grenades, all as recognizable 3D models
 - Real smoke: soft round sprite clouds ~18 m across that sit where they land for 20 seconds and genuinely blind bots (inside or through)
 - Three armor pieces — shirt armor, helmet, boots — in three levels each, found only as loot (you start with none); higher-level pieces replace lower ones, total damage reduction reaches 35%, the E-inventory lists your equipment, and an equipped helmet shows on your character; bots' visible helmets and vests grant them the same protection
-- Eight buggies parked along the roads with a PUBG-style "F — DRIVE" prompt, slope physics, run-overs and explosive wrecks
+- Thirteen buggies parked along the roads (two in the city) with a PUBG-style "F — DRIVE" prompt, slope physics, run-overs and explosive wrecks
 - 39 bots that hear gunfire, hunt attackers, loot crates, heal behind cover, throw grenades, and rotate to the next zone circle early
 - Sniper: click fires instantly when scoped; from the hip, hold and release for a deliberate shot
 - Shrinking zone with countdown timers on every phase; kill feed, kills counter, minimap with flight path

@@ -10,7 +10,7 @@ const waterMat = new THREE.ShaderMaterial({
     deep:     { value: new THREE.Color(0x1d4a63) },
     shallow:  { value: new THREE.Color(0x2f6f8d) },
     fogColor: { value: new THREE.Color(SKY_HORIZON) },
-    fogNear:  { value: 110 }, fogFar: { value: 760 },
+    fogNear:  { value: 120 }, fogFar: { value: 860 },
   },
   vertexShader: [
     'uniform float time;',
@@ -43,7 +43,7 @@ const waterMat = new THREE.ShaderMaterial({
     '}'
   ].join('\n')
 });
-const water = new THREE.Mesh(new THREE.PlaneGeometry(6600, 6600, 96, 96), waterMat);
+const water = new THREE.Mesh(new THREE.PlaneGeometry(8200, 8200, 96, 96), waterMat);
 water.rotation.x = -Math.PI/2; water.position.y = -2.3;
 scene.add(water);
 
@@ -84,13 +84,15 @@ function xform(g, x,y,z, ry, sx,sy,sz){
 // horizon mountains ring (outside playable map, mostly silhouettes in the fog)
 {
   const mg = [];
-  for(let i=0;i<28;i++){
-    const a = (i/28)*Math.PI*2 + randRange(-0.10,0.10);
-    const rad = randRange(1180, 1520);
-    const w = randRange(110,210), h = randRange(90,260);
+  for(let i=0;i<30;i++){
+    const a = (i/30)*Math.PI*2 + randRange(-0.10,0.10);
+    const rad = randRange(1520, 1920);
+    const w = randRange(140,260), h = randRange(110,320);
+    const mx = Math.cos(a)*rad, mz = Math.sin(a)*rad;
+    if(Math.hypot(mx, mz + 1950) < w + 70) continue;          // keep clear of the lobby hangar
     const col = new THREE.Color().setHSL(0.33+randRange(-0.04,0.07), 0.26, 0.33+randRange(-0.05,0.06));
     mg.push(xform(tintGeo(new THREE.ConeGeometry(w, h, 5+Math.floor(Math.random()*3)), col.getHex()),
-      Math.cos(a)*rad, h/2-6, Math.sin(a)*rad, randRange(0,Math.PI)));
+      mx, h/2-6, mz, randRange(0,Math.PI)));
   }
   const m = new THREE.Mesh(mergeGeoms(mg), MAT_FLAT);
   scene.add(m);
@@ -98,8 +100,8 @@ function xform(g, x,y,z, ry, sx,sy,sz){
 // clouds
 const clouds = new THREE.Mesh((()=> {
   const cg = [];
-  for(let i=0;i<34;i++){
-    const cx = randRange(-940,940), cz = randRange(-940,940), cy = randRange(150,225);
+  for(let i=0;i<42;i++){
+    const cx = randRange(-1180,1180), cz = randRange(-1180,1180), cy = randRange(170,265);
     const puffs = 3+Math.floor(Math.random()*3);
     for(let k=0;k<puffs;k++){
       cg.push(xform(tintGeo(new THREE.IcosahedronGeometry(randRange(10,19),0), 0xffffff),
@@ -130,22 +132,23 @@ function slopeAt(x,z){
   return Math.hypot(heightAt(x+e,z)-heightAt(x-e,z), heightAt(x,z+e)-heightAt(x,z-e))/(2*e);
 }
 function goodScatterSpot(x, z, roadPad, bldPad){
-  if(Math.max(Math.abs(x),Math.abs(z)) > 940) return false;
+  if(Math.max(Math.abs(x),Math.abs(z)) > 1180) return false;
   if(insideBuilding(x, z, bldPad)) return false;
   if(roadFactorGen(x,z) > roadPad) return false;
   return true;
 }
 
-// ---------------- trees (140), rocks (50), grass tufts (650) ----------------
+// ---------------- trees (2100), rocks (400), grass tufts (4800) ----------------
 const treeSpots = [];
 {
   const tg = [];
   let placed = 0, guard = 0;
-  while(placed < 1500 && guard++ < 70000){
-    const x = randRange(-940,940), z = randRange(-940,940);
+  while(placed < 2100 && guard++ < 110000){
+    const x = randRange(-1180,1180), z = randRange(-1180,1180);
     if(!goodScatterSpot(x,z,0.03,4.5) || slopeAt(x,z) > 0.62) continue;
-    if(heightAt(x,z) < -0.6) continue;                        // not on beaches or in the lake
-    const y = heightAt(x,z), s = randRange(0.85,1.7), ry = randRange(0,Math.PI*2);
+    const y = heightAt(x,z);
+    if(y < -0.6 || y > 76) continue;                          // no beach/lake trees, none above the treeline
+    const s = randRange(0.85,1.7), ry = randRange(0,Math.PI*2);
     const leaf = new THREE.Color().setHSL(0.29+randRange(-0.035,0.045), 0.42+randRange(-0.06,0.06), 0.32+randRange(-0.05,0.05));
     tg.push(xform(tintGeo(new THREE.CylinderGeometry(0.16,0.30,1.7,6), 0x6b4a2f), x, y+0.85*s, z, ry, s));
     tg.push(xform(tintGeo(new THREE.ConeGeometry(1.55,2.9,7), leaf.getHex()), x, y+(1.7+1.3)*s, z, ry, s));
@@ -166,8 +169,8 @@ const treeSpots = [];
 {
   const rg = [];
   let placed = 0, guard = 0;
-  while(placed < 300 && guard++ < 30000){
-    const x = randRange(-940,940), z = randRange(-940,940);
+  while(placed < 400 && guard++ < 44000){
+    const x = randRange(-1180,1180), z = randRange(-1180,1180);
     if(!goodScatterSpot(x,z,0.05,3)) continue;
     const y = heightAt(x,z), r = randRange(0.5,1.9);
     const g = new THREE.IcosahedronGeometry(r, 0);
@@ -188,10 +191,11 @@ const treeSpots = [];
 {
   const gg = [];
   let placed = 0, guard = 0;
-  while(placed < 3800 && guard++ < 60000){
-    const x = randRange(-940,940), z = randRange(-940,940);
-    if(!goodScatterSpot(x,z,0.04,2) || heightAt(x,z) < -0.4) continue;
+  while(placed < 4800 && guard++ < 90000){
+    const x = randRange(-1180,1180), z = randRange(-1180,1180);
+    if(!goodScatterSpot(x,z,0.04,2)) continue;
     const y = heightAt(x,z);
+    if(y < -0.4 || y > 70) continue;                          // no tufts on beaches or the high slopes
     const gcol = new THREE.Color().setHSL(0.21+randRange(-0.03,0.05), 0.46, 0.40+randRange(-0.05,0.07));
     const s = randRange(0.7,1.5);
     gg.push(xform(tintGeo(new THREE.ConeGeometry(0.30,0.6,4), gcol.getHex()), x, y+0.28*s, z, randRange(0,Math.PI), s));
@@ -208,7 +212,11 @@ const PALETTES = [
   { wall:0x8f7355, trim:0x66513a, roof:0x525a62 },
   { wall:0xd9d2c4, trim:0x7d6c58, roof:0x5a6570 },
   { wall:0x6e5a44, trim:0x4a3c2c, roof:0x74564a },
+  // concrete high-rises — used only by the 'tower' style
+  { wall:0x8f949a, trim:0x686e74, roof:0x565b61 },
+  { wall:0xa39d92, trim:0x746e64, roof:0x5a5f66 },
 ];
+const HOUSE_PALETTES = 6;   // regular buildings cycle the first six
 const bldGeoms = [];
 function bBox(w,h,d, x,y,z, color, collide){
   bldGeoms.push(xform(tintGeo(new THREE.BoxGeometry(w,h,d), color), x, y, z, 0));
@@ -236,7 +244,7 @@ function wallWithDoor(side, fy, H, t, P, doorW, doorH){
 }
 function windowsOn(side, t, P, wy, count){
   for(let wi=0; wi<count; wi++){
-    const off = count===1 ? 0 : (wi===0?-1:1)*side.len*0.22;
+    const off = count===1 ? 0 : count===2 ? (wi===0?-1:1)*side.len*0.22 : (wi-1)*side.len*0.28;
     if(side.ax === 'x'){
       bBox(1.7, 1.5, t+0.14, side.cx+off, wy, side.cz, P.trim, false);
       bBox(1.4, 1.2, t+0.22, side.cx+off, wy, side.cz, 0x27343f, false);
@@ -247,11 +255,11 @@ function windowsOn(side, t, P, wy, count){
   }
 }
 function makeBuilding(b, idx){
-  const P = PALETTES[idx % PALETTES.length];
   const style = b.style || (b.flat || idx % 3 === 2 ? 'flat' : 'house');
+  const P = style === 'tower' ? PALETTES[HOUSE_PALETTES + idx % 2] : PALETTES[idx % HOUSE_PALETTES];
   const y0 = b.baseH, t = 0.36, H = b.h;
   const twoRows = style === 'house2' || style === 'apartment';
-  const doorW = style === 'barn' ? 3.4 : (style === 'warehouse' || style === 'flat') ? 2.4 : 1.8;
+  const doorW = style === 'barn' ? 3.4 : (style === 'warehouse' || style === 'flat' || style === 'tower') ? 2.4 : 1.8;
   const doorH = style === 'barn' ? 3.2 : 2.55;
 
   bBox(b.w+1.6, 0.34, b.d+1.6, b.x, y0+0.17, b.z, 0xb3ada6, false);
@@ -276,6 +284,11 @@ function makeBuilding(b, idx){
         if(side.ax === 'x') bBox(Math.min(4.5, side.len*0.32), 3.4, t+0.12, side.cx+off, fy+1.7, side.cz, 0x3c444c, false);
         else bBox(t+0.12, 3.4, Math.min(4.5, side.len*0.32), side.cx, fy+1.7, side.cz+off, 0x3c444c, false);
       }
+      if(style === 'tower'){
+        // window rows continue above the entrance for the full height
+        const nWin = side.len >= 13 ? 3 : 2;
+        for(let wy = fy + doorH + 2.1; wy < fy + H - 1.1; wy += 3.0) windowsOn(side, t, P, wy, nWin);
+      }
       const dir = side.dir;
       doorSpots.push({ x: side.cx + dir[0]*2.6, z: side.cz + dir[1]*2.6 });
     } else if(style === 'apartment' && side.s === stairSide){
@@ -289,9 +302,15 @@ function makeBuilding(b, idx){
     } else {
       if(side.ax === 'x') bBox(side.len, H, t, side.cx, fy+H/2, side.cz, P.wall, true);
       else bBox(t, H, side.len, side.cx, fy+H/2, side.cz, P.wall, true);
-      const nWin = style === 'barn' || style === 'shed' ? 1 : (side.len >= 9 ? 2 : 1);
-      windowsOn(side, t, P, fy + 1.65, nWin);
-      if(twoRows) windowsOn(side, t, P, fy + 4.55, nWin);
+      if(style === 'tower'){
+        // stacked window rows every storey, all the way up
+        const nWin = side.len >= 13 ? 3 : 2;
+        for(let wy = fy + 1.85; wy < fy + H - 1.1; wy += 3.0) windowsOn(side, t, P, wy, nWin);
+      } else {
+        const nWin = style === 'barn' || style === 'shed' ? 1 : (side.len >= 9 ? 2 : 1);
+        windowsOn(side, t, P, fy + 1.65, nWin);
+        if(twoRows) windowsOn(side, t, P, fy + 4.55, nWin);
+      }
     }
   }
   if(style === 'house2') {
@@ -324,17 +343,25 @@ function makeBuilding(b, idx){
       floors.push({ minX:sx-stw/2, maxX:sx+stw/2, minZ:sz-std/2, maxZ:sz+std/2, top:sy+0.09 });
     }
   }
+  const post = style === 'tower' ? 0.72 : 0.5;
   for(const sx of [-1,1]) for(const sz of [-1,1]){
-    bBox(0.5, H, 0.5, b.x+sx*b.w/2, fy+H/2, b.z+sz*b.d/2, P.trim, false);
+    bBox(post, H, post, b.x+sx*b.w/2, fy+H/2, b.z+sz*b.d/2, P.trim, false);
     coverSpots.push({ x:b.x+sx*(b.w/2+1.3), z:b.z+sz*(b.d/2+1.3) });
   }
   // roofs
-  if(style === 'flat' || style === 'warehouse'){
+  if(style === 'flat' || style === 'warehouse' || style === 'tower'){
+    const pH = style === 'tower' ? 0.9 : 0.55;                    // towers get a taller parapet
     bBox(b.w+1.3, 0.3, b.d+1.3, b.x, fy+H+0.15, b.z, P.roof, false);
-    bBox(b.w+1.3, 0.55, 0.3, b.x, fy+H+0.55, b.z-(b.d+1.0)/2, P.roof, false);
-    bBox(b.w+1.3, 0.55, 0.3, b.x, fy+H+0.55, b.z+(b.d+1.0)/2, P.roof, false);
-    bBox(0.3, 0.55, b.d+1.3, b.x-(b.w+1.0)/2, fy+H+0.55, b.z, P.roof, false);
-    bBox(0.3, 0.55, b.d+1.3, b.x+(b.w+1.0)/2, fy+H+0.55, b.z, P.roof, false);
+    bBox(b.w+1.3, pH, 0.3, b.x, fy+H+0.3+pH/2, b.z-(b.d+1.0)/2, P.roof, false);
+    bBox(b.w+1.3, pH, 0.3, b.x, fy+H+0.3+pH/2, b.z+(b.d+1.0)/2, P.roof, false);
+    bBox(0.3, pH, b.d+1.3, b.x-(b.w+1.0)/2, fy+H+0.3+pH/2, b.z, P.roof, false);
+    bBox(0.3, pH, b.d+1.3, b.x+(b.w+1.0)/2, fy+H+0.3+pH/2, b.z, P.roof, false);
+    if(style === 'tower'){
+      // rooftop stairhouse + service unit give the skyline a silhouette
+      bBox(3.4, 2.4, 2.7, b.x - b.w*0.16, fy+H+1.5, b.z + b.d*0.08, P.trim, false);
+      bBox(3.7, 0.26, 3.0, b.x - b.w*0.16, fy+H+2.83, b.z + b.d*0.08, P.roof, false);
+      bBox(1.5, 1.0, 1.5, b.x + b.w*0.26, fy+H+0.8, b.z - b.d*0.22, P.roof, false);
+    }
   } else if(style === 'shed'){
     const ang = Math.atan2(1.1, b.d);
     const g = new THREE.BoxGeometry(b.w+1.7, 0.22, (b.d+1.9)/Math.cos(ang));

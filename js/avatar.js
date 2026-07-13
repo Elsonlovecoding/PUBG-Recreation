@@ -72,7 +72,7 @@ const avatar = (function(){
            headgear: { hair:[hgHair], cap:[hgCap, hgCapBrim], helmet1:[hgH1], helmet3:[hgH3] } };
 })();
 // the lobby is its own hangar room, floating far off the south coast
-const LOBBY_SPOT = { x: 0, z: -1600 };
+const LOBBY_SPOT = { x: 0, z: -1950 };
 const LOBBY_FLOOR = 40.2;
 const lobbyRoom = (function(){
   const g = new THREE.Group();

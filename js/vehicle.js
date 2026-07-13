@@ -14,6 +14,8 @@ const VEHICLE_SPOTS = [
   { x: -85,  z: 680,  hex: 0x9c5a5a },
   { x: 690,  z: 112,  hex: 0x5a7d9c },
   { x: -655, z: -510, hex: 0x6f8f5a },
+  { x: -390, z: 95,   hex: 0xb9bdc2 },   // Karona City avenue
+  { x: -412, z: 8,    hex: 0xa06a3a },   // city south approach
 ];
 // park each buggy on the shoulder of the nearest road
 function snapToRoad(sp){

@@ -18,9 +18,12 @@ doorSpots.forEach(d => waypoints.push({x:d.x, z:d.z}));
 // cluster plazas + the lake shore
 [[0,34],[-260,180],[222,-220],[240,252],[-150,-12],[-320,-318],[336,308],[0,356],
  [128,470],[-495,-95],[388,-468],[250,60],[-300,-50],
- [-82,698],[698,120],[-660,-520],[620,556],[250,-696]].forEach(p => waypoints.push({x:p[0], z:p[1]}));
-for(let i=0;i<88;i++){
-  const x = randRange(-880,880), z = randRange(-880,880);
+ [-82,698],[698,120],[-660,-520],[620,556],[250,-696],
+ [-390,90],[-437,42],[-341,138],[-390,144],                  // Karona City streets
+ [-680,420],[540,-480],[300,700],                            // mountain feet
+ [900,-200],[-880,600],[150,-960],[820,820],[-940,-260]].forEach(p => waypoints.push({x:p[0], z:p[1]}));
+for(let i=0;i<120;i++){
+  const x = randRange(-1120,1120), z = randRange(-1120,1120);
   if(!insideBuilding(x,z,2) && heightAt(x,z) > 0) waypoints.push({x,z});
 }
 
@@ -113,7 +116,7 @@ for(let i=0;i<BOT_COUNT;i++){
   // preferred landing spot (used by the plane drop; also the fallback ground spawn)
   let x, z, guard = 0;
   do {
-    const a = randRange(0,Math.PI*2), r = randRange(150,920);
+    const a = randRange(0,Math.PI*2), r = randRange(180,1150);
     x = Math.cos(a)*r; z = Math.sin(a)*r; guard++;
   } while((insideBuilding(x,z,3) || heightAt(x,z) < 0.3) && guard < 150);
   bot.landing = { x, z };
