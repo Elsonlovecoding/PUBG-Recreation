@@ -2,7 +2,7 @@
 // PUBG Recreation — village/road layout, noise heightfield, per-pixel splat-textured terrain
 
 // ---------------- world layout : buildings & dirt roads ----------------
-const WORLD = 3000, HALF = WORLD/2;
+const WORLD = 4000, HALF = WORLD/2;
 // clusters: Oakfield village (center), Riverside hamlet (NW), military depot (SE),
 // hilltop farm (NE), Karona City (W) and lone houses scattered around the island
 const buildings = [
@@ -90,6 +90,15 @@ const buildings = [
   { x:140,  z:-1010, w:14, d:10, h:6.5, door:'N', style:'warehouse', flat:true },  // south dock sheds
   { x:170,  z:-985,  w:8,  d:7,  h:3.4, door:'W', style:'shed' },
   { x:-950, z:900,  w:11, d:9,  h:6.2, door:'S', style:'house2' },  // northwest cape
+  // outer-ring settlements for the 4km island
+  { x:1420,  z:980,   w:12, d:9,  h:4.6, door:'W' },                // northeast shore pair
+  { x:1424,  z:1008,  w:8,  d:7,  h:3.4, door:'W', style:'shed' },
+  { x:-1462, z:-318,  w:15, d:10, h:6.6, door:'E', style:'barn' },  // far west farm
+  { x:-1436, z:-292,  w:10, d:8,  h:4.4, door:'S' },
+  { x:-878,  z:1418,  w:11, d:9,  h:6.2, door:'S', style:'house2' },  // north cape pair
+  { x:-850,  z:1414,  w:9,  d:8,  h:4.2, door:'S' },
+  { x:518,   z:-1462, w:14, d:10, h:6.5, door:'N', style:'warehouse', flat:true },  // south shore depot
+  { x:548,   z:-1438, w:8,  d:7,  h:3.4, door:'W', style:'shed' },
   // Karona City — tower blocks on a paved grid
   { x:-415, z:65,   w:15, d:13, h:18, door:'E', style:'tower' },
   { x:-365, z:63,   w:14, d:12, h:21, door:'W', style:'tower' },
@@ -159,11 +168,16 @@ const roads = [
   { ax:-52,  az:-288, bx:242,  bz:-692, hw:1.8 },
   { ax:-155, az:492,  bx:-342, bz:672,  hw:1.8 },
   { ax:-692, az:296,  bx:-712, bz:-72,  hw:1.8 },
-  // long coastal routes to the new capes
+  // long coastal routes to the capes
   { ax:685,  az:112,  bx:995,  bz:612,  hw:1.8 },   // to the east cape
   { ax:-662, az:-515, bx:-1012, bz:-782, hw:1.8 },  // to the southwest cape
   { ax:242,  az:-692, bx:148,  bz:-1002, hw:1.8 },  // to the south dock
   { ax:-342, az:672,  bx:-938, bz:892,  hw:1.8 },   // to the northwest cape
+  // outer-ring routes for the 4km island
+  { ax:995,  az:612,  bx:1415, bz:975,  hw:1.8 },   // northeast shore
+  { ax:-1012, az:-782, bx:-1456, bz:-322, hw:1.8 }, // far west farm
+  { ax:-938, az:892,  bx:-872, bz:1410, hw:1.8 },   // north cape
+  { ax:148,  az:-1002, bx:512,  bz:-1455, hw:1.8 }, // south shore depot
 ];
 function distToSeg(px, pz, r){
   const dx=r.bx-r.ax, dz=r.bz-r.az, L2=dx*dx+dz*dz;
@@ -184,6 +198,13 @@ function distToSeg(px, pz, r){
     if(best && bd > 2.5) roads.push({ ax:dpx, az:dpz, bx:best.x, bz:best.z, hw:1.6 });
   }
 }
+// bounding boxes let every road query reject far segments with four compares —
+// this is what keeps the 4km grid generation (and grass streaming) fast
+for(const r of roads){
+  const m = r.hw + 4.6;
+  r.minX = Math.min(r.ax, r.bx) - m; r.maxX = Math.max(r.ax, r.bx) + m;
+  r.minZ = Math.min(r.az, r.bz) - m; r.maxZ = Math.max(r.az, r.bz) + m;
+}
 
 // ---------------- terrain height field (generation-time, analytic) ----------------
 function baseHeight(x,z){
@@ -195,7 +216,8 @@ function baseHeight(x,z){
   h += Math.pow(clamp(n2*0.5+0.5, 0, 1), 1.1) * 9;
   h += Noise.fbm(x*0.013+7.3, z*0.013-3.1, 3, 2.0, 0.5) * 2.8;  // small detail
   // climbable mountain massifs — ridged noise gives real crests, spurs and gullies
-  const MTS = [ [-940, 580, 470, 138], [760, -680, 430, 120], [430, 940, 380, 100], [-380, -860, 350, 88] ];
+  const MTS = [ [-1250, 775, 560, 145], [1010, -905, 500, 125], [575, 1250, 440, 105],
+                [-505, -1145, 420, 92], [1290, -185, 400, 96] ];
   for(let i=0;i<MTS.length;i++){
     const m = MTS[i];
     const d = Math.hypot(x - m[0], z - m[1]);
@@ -207,7 +229,7 @@ function baseHeight(x,z){
   }
   const lake = 1 - smoothstep(15, 75, Math.hypot(x+150, z+60)); // shallow lake basin
   h = lerp(h, -3.4, Math.min(1, lake*1.5));
-  const edge = smoothstep(1220, 1470, Math.max(Math.abs(x), Math.abs(z)));
+  const edge = smoothstep(1650, 1950, Math.max(Math.abs(x), Math.abs(z)));
   h = h*(1-edge*0.92) - edge*5.0;                               // beach slopes at map rim
   return h;
 }
@@ -232,6 +254,7 @@ function roadFactorGen(x,z){
   let rf = 0;
   for(const r of roads){
     if(r.paved) continue;
+    if(x < r.minX || x > r.maxX || z < r.minZ || z > r.maxZ) continue;
     const s = distToSeg(x,z,r);
     rf = Math.max(rf, 1 - smoothstep(r.hw*0.9, r.hw+0.7, s.d));   // hard shoulder
   }
@@ -241,6 +264,7 @@ function pavedFactorGen(x,z){
   let rf = 0;
   for(const r of roads){
     if(!r.paved) continue;
+    if(x < r.minX || x > r.maxX || z < r.minZ || z > r.maxZ) continue;
     const s = distToSeg(x,z,r);
     rf = Math.max(rf, 1 - smoothstep(r.hw*0.82, r.hw+1.6, s.d));
   }
@@ -261,7 +285,7 @@ function colorFor(x, z, h, slope, rfOverride, rpOverride){
   c = mix3(c, C_DIRT, smoothstep(0.32, 0.78, slope));                 // dirt on slopes
   c = mix3(c, C_ROCK, smoothstep(0.85, 1.30, slope));                 // rock on cliffs
   const sandF = Math.max(
-    smoothstep(1220, 1450, Math.max(Math.abs(x), Math.abs(z))),       // sand near map edges
+    smoothstep(1650, 1930, Math.max(Math.abs(x), Math.abs(z))),       // sand near map edges
     1 - smoothstep(-1.2, 0.6, h));                                    // sand in low basins
   c = mix3(c, C_SAND, sandF);
   // snowcaps on the high peaks
@@ -282,7 +306,7 @@ function colorFor(x, z, h, slope, rfOverride, rpOverride){
 }
 
 // ---------------- build terrain (12x12 chunk meshes) + runtime height grid ----------------
-const SEG = 720, STEP = WORLD/SEG, CHUNKS = 12, CSEG = SEG/CHUNKS;
+const SEG = 960, STEP = WORLD/SEG, CHUNKS = 12, CSEG = SEG/CHUNKS;
 const heightGrid = new Float32Array((SEG+1)*(SEG+1));
 const roadGrid = new Float32Array((SEG+1)*(SEG+1));
 const pavedGrid = new Float32Array((SEG+1)*(SEG+1));
@@ -295,6 +319,7 @@ const weightBytes = new Uint8Array((SEG+1)*(SEG+1)*4);   // r=dirt road, g=paved
       let h = baseHeight(x,z), rf = 0, rp = 0, ao = 1;
       for(let ri=0; ri<roads.length; ri++){
         const r = roads[ri];
+        if(x < r.minX || x > r.maxX || z < r.minZ || z > r.maxZ) continue;
         const s = distToSeg(x,z,r);
         if(s.d < r.hw + 4.5){
           const f = 1 - smoothstep(r.hw, r.hw+4.5, s.d);
@@ -305,9 +330,9 @@ const weightBytes = new Uint8Array((SEG+1)*(SEG+1)*4);   // r=dirt road, g=paved
       }
       for(let bi=0; bi<buildings.length; bi++){
         const b = buildings[bi];
-        const dx = Math.max(Math.abs(x-b.x)-b.w/2, 0);
-        const dz = Math.max(Math.abs(z-b.z)-b.d/2, 0);
-        const dd = Math.hypot(dx,dz);
+        const bdx = Math.abs(x-b.x) - b.w/2, bdz = Math.abs(z-b.z) - b.d/2;
+        if(bdx > 8.5 || bdz > 8.5) continue;
+        const dd = Math.hypot(Math.max(bdx, 0), Math.max(bdz, 0));
         if(dd < 8.5){
           const f = 1 - smoothstep(0, 8.5, dd);
           h = h*(1-f) + b.baseH*f;                             // building pads
@@ -369,7 +394,7 @@ terrainMat.onBeforeCompile = (shader) => {
       // choose the detail material per pixel, mirroring the macro color rules
       '  float dirtW = clamp(smoothstep(0.30, 0.74, slope)*1.15, 0.0, 1.0);',
       '  float rockW = smoothstep(0.80, 1.25, slope);',
-      '  float sandW = max(smoothstep(1220.0, 1450.0, max(abs(vAWPos.x), abs(vAWPos.z))), 1.0 - smoothstep(-1.2, 0.6, vAWPos.y));',
+      '  float sandW = max(smoothstep(1650.0, 1930.0, max(abs(vAWPos.x), abs(vAWPos.z))), 1.0 - smoothstep(-1.2, 0.6, vAWPos.y));',
       '  float snowW = smoothstep(82.0, 105.0, vAWPos.y) * (1.0 - smoothstep(1.3, 1.9, slope));',
       '  vec3 det = dGrass;',
       '  det = mix(det, dDirt, dirtW);',

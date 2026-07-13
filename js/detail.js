@@ -108,9 +108,9 @@ const DETAIL = (function(){
     const bc = bladeCv.getContext('2d');
     bc.clearRect(0, 0, 128, 128);
     bc.lineCap = 'round';
-    for(let b = 0; b < 26; b++){
-      const bx = 8 + Math.random()*112, lean = randRange(-16, 16), h = randRange(52, 114);
-      let w = randRange(2.6, 5.2);
+    for(let b = 0; b < 30; b++){
+      const bx = 8 + Math.random()*112, lean = randRange(-7, 7), h = randRange(58, 110);
+      let w = randRange(2.4, 4.2);
       const shade = randRange(0.68, 1.14);
       bc.strokeStyle = 'rgb(' + Math.round(170*shade) + ',' + Math.round(194*shade) + ',' + Math.round(132*shade) + ')';
       let px = bx, py = 128;

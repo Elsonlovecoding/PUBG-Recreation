@@ -19,8 +19,8 @@ const GRASS = (function(){
         '#include <begin_vertex>',
         '#ifdef USE_INSTANCING',
         '  float wph = instanceMatrix[3][0]*0.53 + instanceMatrix[3][2]*0.71;',   // phase by world pos
-        '  transformed.x += sin(uTime*1.9 + wph) * position.y * 0.45;',           // sway the blade tips
-        '  transformed.z += cos(uTime*1.5 + wph*1.3) * position.y * 0.28;',
+        '  transformed.x += sin(uTime*1.9 + wph) * position.y * 0.22;',           // gentle sway
+        '  transformed.z += cos(uTime*1.5 + wph*1.3) * position.y * 0.13;',
         // sink smoothly into the ground toward the ring edge instead of popping
         '  float gDist = distance(vec3(instanceMatrix[3][0], instanceMatrix[3][1], instanceMatrix[3][2]), cameraPosition);',
         '  transformed.y *= 1.0 - smoothstep(34.0, 47.0, gDist);',
@@ -29,7 +29,7 @@ const GRASS = (function(){
 
   // crossed-quad clump (two planes at 90°), roots at y=0
   const geo = (() => {
-    const w = 1.05, h = 0.46, hw = w/2;
+    const w = 1.05, h = 0.34, hw = w/2;
     const pos = [], nor = [], uv = [], idx = [];
     let vi = 0;
     const quad = (ax, az, bx, bz) => {
@@ -68,7 +68,7 @@ const GRASS = (function(){
     for(let k=0;k<PER_CELL;k++){
       const idx2 = base + k;
       const x = (cx + rand())*CELL, z = (cz + rand())*CELL;
-      let ok = Math.max(Math.abs(x), Math.abs(z)) < 1430;
+      let ok = Math.max(Math.abs(x), Math.abs(z)) < 1930;
       const h = ok ? heightAt(x, z) : 0;
       if(ok && (h < 0.25 || h > 72)) ok = false;                    // no grass on sand, water, high rock
       if(ok && slopeAt(x, z) > 0.85) ok = false;
@@ -85,7 +85,7 @@ const GRASS = (function(){
         continue;
       }
       dummy.position.set(x, h, z);
-      dummy.scale.setScalar(0.64 + rand()*0.52);
+      dummy.scale.setScalar(0.74 + rand()*0.36);       // tight range: an even, tidy meadow
       dummy.rotation.y = rand()*Math.PI*2;
       dummy.updateMatrix();
       mesh.setMatrixAt(idx2, dummy.matrix);

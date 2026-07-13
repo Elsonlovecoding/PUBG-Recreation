@@ -20,11 +20,12 @@ doorSpots.forEach(d => waypoints.push({x:d.x, z:d.z}));
  [128,470],[-495,-95],[388,-468],[250,60],[-300,-50],
  [-82,698],[698,120],[-660,-520],[620,556],[250,-696],
  [-390,90],[-437,42],[-341,138],[-390,144],                  // Karona City streets
- [-800,480],[640,-580],[360,820],[-320,-740],                // mountain feet
+ [-1060,660],[850,-760],[500,1060],[-430,-975],[1100,-160],  // mountain feet
  [900,-200],[-880,600],[150,-960],[820,820],[-940,-260],
- [995,625],[-1000,-785],[150,-1000],[-940,895]].forEach(p => waypoints.push({x:p[0], z:p[1]}));
-for(let i=0;i<150;i++){
-  const x = randRange(-1360,1360), z = randRange(-1360,1360);
+ [995,625],[-1000,-785],[150,-1000],[-940,895],
+ [1420,975],[-1450,-315],[-865,1412],[520,-1450]].forEach(p => waypoints.push({x:p[0], z:p[1]}));
+for(let i=0;i<190;i++){
+  const x = randRange(-1820,1820), z = randRange(-1820,1820);
   if(!insideBuilding(x,z,2) && heightAt(x,z) > 0) waypoints.push({x,z});
 }
 
@@ -134,7 +135,7 @@ for(let i=0;i<BOT_COUNT;i++){
   // preferred landing spot (used by the plane drop; also the fallback ground spawn)
   let x, z, guard = 0;
   do {
-    const a = randRange(0,Math.PI*2), r = randRange(180,1380);
+    const a = randRange(0,Math.PI*2), r = randRange(200,1850);
     x = Math.cos(a)*r; z = Math.sin(a)*r; guard++;
   } while((insideBuilding(x,z,3) || heightAt(x,z) < 0.3) && guard < 150);
   bot.landing = { x, z };

@@ -10,7 +10,7 @@ const waterMat = new THREE.ShaderMaterial({
     deep:     { value: new THREE.Color(0x1d4a63) },
     shallow:  { value: new THREE.Color(0x2f6f8d) },
     fogColor: { value: new THREE.Color(SKY_HORIZON) },
-    fogNear:  { value: 130 }, fogFar: { value: 1050 },
+    fogNear:  { value: 140 }, fogFar: { value: 1180 },
   },
   vertexShader: [
     'uniform float time;',
@@ -45,7 +45,7 @@ const waterMat = new THREE.ShaderMaterial({
     '}'
   ].join('\n')
 });
-const water = new THREE.Mesh(new THREE.PlaneGeometry(9800, 9800, 96, 96), waterMat);
+const water = new THREE.Mesh(new THREE.PlaneGeometry(12600, 12600, 96, 96), waterMat);
 water.rotation.x = -Math.PI/2; water.position.y = -2.3;
 scene.add(water);
 
@@ -118,12 +118,12 @@ function xform(g, x,y,z, ry, sx,sy,sz){
 // horizon mountains ring (outside playable map, mostly silhouettes in the fog)
 {
   const mg = [];
-  for(let i=0;i<32;i++){
-    const a = (i/32)*Math.PI*2 + randRange(-0.10,0.10);
-    const rad = randRange(1880, 2340);
-    const w = randRange(180,320), h = randRange(130,390);
+  for(let i=0;i<36;i++){
+    const a = (i/36)*Math.PI*2 + randRange(-0.10,0.10);
+    const rad = randRange(2480, 3060);
+    const w = randRange(220,380), h = randRange(150,440);
     const mx = Math.cos(a)*rad, mz = Math.sin(a)*rad;
-    if(Math.hypot(mx, mz + 2350) < w + 70) continue;          // keep clear of the lobby hangar
+    if(Math.hypot(mx, mz + 2900) < w + 70) continue;          // keep clear of the lobby hangar
     const col = new THREE.Color().setHSL(0.33+randRange(-0.04,0.07), 0.26, 0.33+randRange(-0.05,0.06));
     mg.push(xform(tintGeo(new THREE.ConeGeometry(w, h, 5+Math.floor(Math.random()*3)), col.getHex()),
       mx, h/2-6, mz, randRange(0,Math.PI)));
@@ -134,8 +134,8 @@ function xform(g, x,y,z, ry, sx,sy,sz){
 // clouds
 const clouds = new THREE.Mesh((()=> {
   const cg = [];
-  for(let i=0;i<52;i++){
-    const cx = randRange(-1430,1430), cz = randRange(-1430,1430), cy = randRange(180,290);
+  for(let i=0;i<64;i++){
+    const cx = randRange(-1930,1930), cz = randRange(-1930,1930), cy = randRange(180,300);
     const puffs = 3+Math.floor(Math.random()*3);
     for(let k=0;k<puffs;k++){
       cg.push(xform(tintGeo(new THREE.IcosahedronGeometry(randRange(10,19),0), 0xffffff),
@@ -166,19 +166,19 @@ function slopeAt(x,z){
   return Math.hypot(heightAt(x+e,z)-heightAt(x-e,z), heightAt(x,z+e)-heightAt(x,z-e))/(2*e);
 }
 function goodScatterSpot(x, z, roadPad, bldPad){
-  if(Math.max(Math.abs(x),Math.abs(z)) > 1430) return false;
+  if(Math.max(Math.abs(x),Math.abs(z)) > 1930) return false;
   if(insideBuilding(x, z, bldPad)) return false;
   if(roadFactorGen(x,z) > roadPad) return false;
   return true;
 }
 
-// ---------------- trees (2900), rocks (540), grass tufts (5400) ----------------
+// ---------------- trees (4400), rocks (800), grass tufts (8200) ----------------
 const treeSpots = [];
 {
   const tg = [];
   let placed = 0, guard = 0;
-  while(placed < 2900 && guard++ < 150000){
-    const x = randRange(-1430,1430), z = randRange(-1430,1430);
+  while(placed < 4400 && guard++ < 240000){
+    const x = randRange(-1930,1930), z = randRange(-1930,1930);
     if(!goodScatterSpot(x,z,0.03,4.5) || slopeAt(x,z) > 0.62) continue;
     const y = heightAt(x,z);
     if(y < -0.6 || y > 76) continue;                          // no beach/lake trees, none above the treeline
@@ -203,8 +203,8 @@ const treeSpots = [];
 {
   const rg = [];
   let placed = 0, guard = 0;
-  while(placed < 540 && guard++ < 60000){
-    const x = randRange(-1430,1430), z = randRange(-1430,1430);
+  while(placed < 800 && guard++ < 90000){
+    const x = randRange(-1930,1930), z = randRange(-1930,1930);
     if(!goodScatterSpot(x,z,0.05,3)) continue;
     const y = heightAt(x,z), r = randRange(0.5,1.9);
     const g = new THREE.IcosahedronGeometry(r, 0);
@@ -225,8 +225,8 @@ const treeSpots = [];
 {
   const gg = [];
   let placed = 0, guard = 0;
-  while(placed < 5400 && guard++ < 110000){
-    const x = randRange(-1430,1430), z = randRange(-1430,1430);
+  while(placed < 8200 && guard++ < 170000){
+    const x = randRange(-1930,1930), z = randRange(-1930,1930);
     if(!goodScatterSpot(x,z,0.04,2)) continue;
     const y = heightAt(x,z);
     if(y < -0.4 || y > 70) continue;                          // no tufts on beaches or the high slopes

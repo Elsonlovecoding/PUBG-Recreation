@@ -2,13 +2,13 @@
 // PUBG Recreation — zone, minimap, HUD, career stats, match flow, main loop
 
 // ---------------- shrinking zone ----------------
-const zone = { cx:0, cz:0, r:1430, tcx:0, tcz:0, tr:1430, scx:0, scz:0, sr:1430, phase:0, state:'wait', t:25 };
+const zone = { cx:0, cz:0, r:1900, tcx:0, tcz:0, tr:1900, scx:0, scz:0, sr:1900, phase:0, state:'wait', t:25 };
 const ZONE_PHASES = [
-  { wait:40, shrink:40, mul:0.54 },
-  { wait:28, shrink:30, mul:0.55 },
-  { wait:21, shrink:23, mul:0.54 },
-  { wait:16, shrink:17, mul:0.50 },
-  { wait:12, shrink:12, mul:0.45 },
+  { wait:44, shrink:44, mul:0.52 },
+  { wait:30, shrink:33, mul:0.54 },
+  { wait:22, shrink:25, mul:0.54 },
+  { wait:17, shrink:18, mul:0.50 },
+  { wait:12, shrink:13, mul:0.45 },
   { wait:8,  shrink:9,  mul:0.05 },
 ];
 const zoneWallMat = new THREE.ShaderMaterial({
@@ -45,8 +45,8 @@ function updateZone(dt){
       zone.scx = zone.cx; zone.scz = zone.cz; zone.sr = zone.r;
       const nr = Math.max(12, zone.r * P.mul);
       const a = randRange(0, Math.PI*2), off = randRange(0, (zone.r - nr) * 0.8);
-      zone.tcx = clamp(zone.cx + Math.cos(a)*off, -1200, 1200);
-      zone.tcz = clamp(zone.cz + Math.sin(a)*off, -1200, 1200);
+      zone.tcx = clamp(zone.cx + Math.cos(a)*off, -1620, 1620);
+      zone.tcz = clamp(zone.cz + Math.sin(a)*off, -1620, 1620);
       zone.tr = nr;
       zone.state = 'shrink'; zone.t = P.shrink;
       SFX.zoneSiren();
@@ -97,7 +97,7 @@ function updateZone(dt){
 const mapCanvas = document.getElementById('minimap');
 const mapCtx = mapCanvas.getContext('2d');
 const MAP_S = 190;
-const MBG = 252;
+const MBG = 264;
 const mapBg = document.createElement('canvas');
 mapBg.width = MBG; mapBg.height = MBG;
 {
