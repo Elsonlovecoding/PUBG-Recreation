@@ -75,6 +75,7 @@ invEl.querySelectorAll('.invrow').forEach(row => {
   row.addEventListener('click', () => {
     const t = row.getAttribute('data-item');
     if(player.items[t] <= 0) return;
+    if(player.driving){ showToast("CAN'T USE ITEMS AT THE WHEEL"); return; }   // browse only while driving
     closeInventory(true);
     equipItem(t);
   });

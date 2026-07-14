@@ -256,7 +256,9 @@ function botShoot(b){
     : { x:b.target.group.position.x, y:b.target.group.position.y+1.2, z:b.target.group.position.z };
   const dx=tp.x-e.x, dy=tp.y-e.y, dz=tp.z-e.z;
   const dist = Math.sqrt(dx*dx+dy*dy+dz*dz);
-  const spread = 0.024 + dist*0.00038 + (b.dest ? 0.016 : 0);
+  const targetDriving = b.target === 'player' && player.driving;
+  const spread = 0.024 + dist*0.00038 + (b.dest ? 0.016 : 0)
+               + (targetDriving ? 0.036 : 0);                   // a moving car is hard to hit
   const d = new THREE.Vector3(dx/dist + randRange(-spread,spread), dy/dist + randRange(-spread,spread), dz/dist + randRange(-spread,spread)).normalize();
   const muzzle = { x: e.x + d.x*0.6, y: e.y - 0.25, z: e.z + d.z*0.6 };
   const hit = castShot(new THREE.Vector3(muzzle.x, muzzle.y, muzzle.z), d, 160, b);
@@ -270,7 +272,12 @@ function botShoot(b){
   const panv = pd > 1 ? (pdx*fwdz - pdz*fwdx) / pd : 0;   // cross product = left/right
   SFX.shot(b.weapon, pd, panv);
   reportGunshot(muzzle.x, muzzle.z, b);
-  if(hit.kind === 'player') damagePlayer(W.botDmg + randRange(-2,2), b.name);
+  if(hit.kind === 'player'){
+    // at the wheel, the buggy's body soaks about half of what would hit you,
+    // and what does get through is blunted by the frame
+    if(player.driving && Math.random() < 0.45) damageVehicle(player.driving, W.botDmg, b.name);
+    else damagePlayer((player.driving ? 0.65 : 1) * (W.botDmg + randRange(-2,2)), b.name);
+  }
   else if(hit.kind === 'bot') damageBot(hit.bot, W.botDmg + randRange(-2,3), b.name, b);
   else if(hit.kind === 'vehicle' && hit.vehicle) damageVehicle(hit.vehicle, W.botDmg, b.name);
 }

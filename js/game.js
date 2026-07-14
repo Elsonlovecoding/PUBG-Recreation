@@ -207,6 +207,7 @@ const MAP_LABELS = [
   ['EAST CAPE', 1000, 625], ['SW CAPE', -1005, -790], ['SOUTH DOCK', 150, -1000],
   ['NW CAPE', -945, 898], ['NE SHORE', 1420, 992], ['WEST FARM', -1450, -305],
   ['NORTH CAPE', -864, 1416], ['SHORE DEPOT', 530, -1450],
+  ['LIGHTHOUSE', 1585, -1230], ['RADIO MAST', 1120, -240], ['WIND FARM', -40, 880],
 ];
 function toggleBigMap(){
   if(!matchStarted || gameState.over){ return; }
@@ -554,7 +555,7 @@ function animate(){
   sunFar.position.set(anchor.x + sunDirection.x*380, anchor.y + sunDirection.y*380, anchor.z + sunDirection.z*380);
   sunFar.target.position.set(anchor.x, anchor.y, anchor.z);
   sunFar.target.updateMatrixWorld();
-  updateGrass(dt);
+  for(const r of windRotors) r.rotation.z += dt*1.7;   // wind farm turns lazily
   sky.position.set(anchor.x, 0, anchor.z);
   clouds.position.x = Math.sin(t*0.008)*24;
   clouds.position.z = Math.cos(t*0.006)*18;

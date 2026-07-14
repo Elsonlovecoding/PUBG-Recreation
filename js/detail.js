@@ -102,27 +102,27 @@ const DETAIL = (function(){
     return [v, v, v];
   });
 
-  // grass-clump sprite for the instanced near-field grass (alpha-tested)
-  const bladeCv = document.createElement('canvas'); bladeCv.width = 128; bladeCv.height = 128;
+  // soft cumulus puff for the billboard clouds: overlapping radial gradients,
+  // denser and brighter toward the top, wispy at the base
+  const cloudCv = document.createElement('canvas'); cloudCv.width = 256; cloudCv.height = 128;
   {
-    const bc = bladeCv.getContext('2d');
-    bc.clearRect(0, 0, 128, 128);
-    bc.lineCap = 'round';
-    for(let b = 0; b < 30; b++){
-      const bx = 8 + Math.random()*112, lean = randRange(-7, 7), h = randRange(58, 110);
-      let w = randRange(2.4, 4.2);
-      const shade = randRange(0.68, 1.14);
-      bc.strokeStyle = 'rgb(' + Math.round(170*shade) + ',' + Math.round(194*shade) + ',' + Math.round(132*shade) + ')';
-      let px = bx, py = 128;
-      for(let s = 1; s <= 3; s++){
-        const tx2 = bx + lean*(s/3)*(s/3), ty2 = 128 - h*(s/3);
-        bc.lineWidth = w;
-        bc.beginPath(); bc.moveTo(px, py); bc.lineTo(tx2, ty2); bc.stroke();
-        px = tx2; py = ty2; w *= 0.60;
-      }
+    const cc = cloudCv.getContext('2d');
+    cc.clearRect(0, 0, 256, 128);
+    for(let i = 0; i < 18; i++){
+      const t = Math.random();
+      const px = 34 + Math.random()*188;
+      const py = 42 + t*44;                                  // lower puffs sit deeper
+      const pr = 16 + Math.random()*30 * (1.15 - t*0.5);
+      const a = (0.34 + Math.random()*0.4) * (1.05 - t*0.45);
+      const g2 = cc.createRadialGradient(px, py, pr*0.1, px, py, pr);
+      g2.addColorStop(0, 'rgba(255,255,255,' + a.toFixed(2) + ')');
+      g2.addColorStop(0.7, 'rgba(248,250,253,' + (a*0.5).toFixed(2) + ')');
+      g2.addColorStop(1, 'rgba(255,255,255,0)');
+      cc.fillStyle = g2;
+      cc.fillRect(0, 0, 256, 128);
     }
   }
-  const blade = new THREE.CanvasTexture(bladeCv);
+  const cloud = new THREE.CanvasTexture(cloudCv);
 
-  return { grass, dirt, rock, sand, snow, asphalt, grain, blade };
+  return { grass, dirt, rock, sand, snow, asphalt, grain, cloud };
 })();
