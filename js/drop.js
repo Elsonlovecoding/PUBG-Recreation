@@ -112,6 +112,7 @@ function jumpFromPlane(){
 function finishPlayerLanding(){
   player.dropState = 'none';
   player.vel.set(0, 0, 0);
+  player.fallPeak = player.pos.y;            // the canopy landing is soft — no fall damage
   playerChute.visible = false;
   setThirdPerson(thirdPrefBeforeDrop);         // back to your preferred view
   dropEnded = true;                       // the zone clock starts now

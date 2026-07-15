@@ -6,7 +6,7 @@ A stylized-realistic battle royale shooter for the browser, built with [Three.js
 
 ## How to play
 
-From the lobby, customize your character and weapon slots, hit PLAY, and queue into a match. A cargo plane then carries 40 combatants across a 4 km × 4 km island — pick your moment, press F, and steer your freefall to the spot you want. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates for typed ammo, armor, medkits and grenades, grab a roadside buggy to rotate, and watch the kill feed. The island has Karona City with its concrete tower blocks, villages, coastal capes and shore camps in every quarter, a military depot, a quarry, farms with silos, watchtowers, lone houses, a lake and five snow-capped ridge massifs — all linked by paved highways and long dirt routes.
+From the lobby, customize your character and weapon slots, hit PLAY, and queue into a match. A cargo plane then carries 40 combatants across a 4 km × 4 km island — pick your moment, press F, and steer your freefall to the spot you want. Last one standing wins the chicken dinner. Stay inside the shrinking blue zone, loot crates for typed ammo, armor, medkits and grenades, grab a roadside buggy to rotate, and watch the kill feed. Three real towns anchor the island's corners — Karona City's concrete towers in the west, the harbor town of Novi Port with its container yard on the south shore, and Eastvale on the eastern plain — around villages, coastal capes, a military depot with a firing range, a quarry, farms, watchtowers, Lake Vera and five named snow-capped massifs (Mt. Severin, Orlov, Talvi, Brek and Egor), all linked by paved highways and long dirt routes.
 
 | Input | Action |
 |---|---|
@@ -22,7 +22,7 @@ From the lobby, customize your character and weapon slots, hit PLAY, and queue i
 | **F** | Jump from the plane · enter / exit a vehicle (prompt appears when close) |
 | **E / M** (driving) | Both work at the wheel — browse your inventory or check the map while you drive |
 | **V** | Toggle first / third person — works while parachuting too |
-| **M** | Open the full island map — place names, zone, flight path; the corner minimap shows the 500 m around you |
+| **M** | Open the full island map — place names, zone, flight path; works in the plane and at the wheel; the corner minimap shows the 500 m around you |
 | **Click** (sniper, scoped) | Fires immediately |
 | **Double-click** (sniper) | Toggle the scope — stays on while you shoot; double-click again to drop it |
 | **Hold click** (sniper, hip) | Charge the shot — fires when you release |
@@ -68,6 +68,9 @@ The scripts are classic (non-module) and load in dependency order, so the game r
 - Two-tier sun shadows — a crisp near map plus a coarse map reaching ~250 m — erase the old shadow cutoff line, while aerial-perspective fog desaturates with distance and warms toward the sun
 - Karona City: four concrete high-rise towers (15–24 m, full window grids and parapets) plus apartments, a warehouse and houses on a paved street grid
 - Tower interiors are real: a concrete storey every 3 m linked by solid scissor staircases with stepped balustrades, loot crates on two floors, and a final flight through a rooftop stairhouse onto the roof — a sniper prize crate waits up there behind the parapet
+- Rooftop parapets are solid rails: you cannot walk off a tower roof, you have to jump the rail — and gravity keeps score
+- Fall damage, PUBG-style: drops of one or two storeys are free, and from the third storey up you take 10 damage per floor (3rd = 10, 4th = 20, 6th = 40...) with armor offering no help; downhill running and canopy landings never hurt
+- The island reads like a real map: every town, cape, farm, mountain and landmark is named on the fullscreen map, and the two new towns are destinations — Novi Port's stacked container yard and harbor tower, Eastvale's market street, plus a firing range beside the military depot, all seeded with bonus loot
 - Building variety grew again: gable-roofed cottages with porches and chimneys, and walk-up apartments that split between outside staircases and proper interior stairwells with an opening in the second floor
 - Real roads: asphalt-colored paved avenues and arterials with worn dirt shoulders link the city, villages and depot, while farm tracks stay dirt — and buggies park along both
 - Building variety: houses, two-storey houses, walk-up apartments with real second floors and outside staircases (bonus loot upstairs), barns, sheds, flat-roof warehouses with roll doors, farm silos and hilltop watchtowers, in six paint palettes (plus two concrete facades for the towers)

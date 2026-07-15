@@ -201,13 +201,16 @@ const bigmapEl = document.getElementById('bigmap');
 const bigCtx = document.getElementById('bigmapcv').getContext('2d');
 let bigMapOpen = false;
 const MAP_LABELS = [
-  ['KARONA CITY', -390, 60], ['OAKFIELD', 0, 6], ['RIVERSIDE', -268, 182],
+  ['KARONA CITY', -390, 60], ['NOVI PORT', 152, -988], ['EASTVALE', 930, 202],
+  ['OAKFIELD', 0, 6], ['RIVERSIDE', -268, 182],
   ['MILITARY DEPOT', 225, -220], ['NORTHPOINT', 130, 470], ['THE QUARRY', -492, -97],
   ['HILLTOP FARM', 240, 252], ['EAST FARM', 698, 120], ['SOUTH RIDGE', 385, -470],
-  ['EAST CAPE', 1000, 625], ['SW CAPE', -1005, -790], ['SOUTH DOCK', 150, -1000],
+  ['EAST CAPE', 1000, 625], ['SW CAPE', -1005, -790],
   ['NW CAPE', -945, 898], ['NE SHORE', 1420, 992], ['WEST FARM', -1450, -305],
   ['NORTH CAPE', -864, 1416], ['SHORE DEPOT', 530, -1450],
   ['LIGHTHOUSE', 1585, -1230], ['RADIO MAST', 1120, -240], ['WIND FARM', -40, 880],
+  ['MT. SEVERIN', -1250, 775], ['MT. ORLOV', 1010, -905], ['MT. TALVI', 575, 1250],
+  ['MT. BREK', -505, -1145], ['MT. EGOR', 1290, -185], ['LAKE VERA', -148, -32],
 ];
 function toggleBigMap(){
   if(!matchStarted || gameState.over){ return; }

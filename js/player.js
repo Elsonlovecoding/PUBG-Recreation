@@ -5,6 +5,7 @@
 const player = {
   pos: new THREE.Vector3(), vel: new THREE.Vector3(),
   yaw: 0, pitch: 0, hp: 100, alive: true, grounded: false,
+  fallPeak: 0,               // highest point of the current fall, for fall damage
   gear: { vest: 0, helmet: 0, boots: 0 },   // armor pieces, lvl 0-3 — all found as loot
   bobPhase: 0, bobAmt: 0, kills: 0,
   weapon: 'rifle',
@@ -298,8 +299,35 @@ function updatePlayer(dt){
   player.pos.z = clamp(player.pos.z, -HALF+4, HALF-4);
   resolveCollisions(player.pos, 0.45, 1.6);
   const g = groundAt(player.pos.x, player.pos.z, player.pos.y + 0.1);
-  if(player.pos.y <= g){ player.pos.y = g; player.vel.y = 0; player.grounded = true; }
-  else if(player.pos.y - g > 0.02) player.grounded = false;
+  const wasGround = player.grounded;
+  if(player.pos.y <= g){
+    // fall damage: two storeys (~6m) is free, from the 3rd storey up it hurts —
+    // 10 damage per storey above the 2nd (L3=10, L4=20, ...), armor doesn't help
+    if(!wasGround && player.fallPeak - g > 7.5){
+      const dmg = Math.round((player.fallPeak - g) / 3 * 10 - 20);
+      player.hp -= dmg;
+      flashVignette(); SFX.hurt(); SFX.land();
+      showToast('FALL DAMAGE  -' + dmg);
+      updateHealthHUD();
+      if(player.hp <= 0){
+        player.hp = 0; player.alive = false;
+        addKillFeed('The fall', 'You');
+        endGame(false, 'the fall');
+      }
+    }
+    player.pos.y = g; player.vel.y = 0; player.grounded = true;
+    player.fallPeak = g;
+  } else if(player.pos.y - g > 0.02){
+    // hug the ground going downhill: only a real ledge (>2m appearing in one frame)
+    // or an actual jump puts you airborne — no phantom airtime on steep slopes
+    if(wasGround && player.vel.y <= 0.01 && player.pos.y - g < 2.0){
+      player.pos.y = g; player.vel.y = 0; player.grounded = true;
+      player.fallPeak = g;
+    } else {
+      player.grounded = false;
+      if(player.pos.y > player.fallPeak) player.fallPeak = player.pos.y;
+    }
+  }
 
   rig.position.copy(player.pos);
 

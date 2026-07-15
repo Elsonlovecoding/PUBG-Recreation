@@ -87,8 +87,25 @@ const buildings = [
   { x:975,  z:598,  w:8,  d:7,  h:3.4, door:'N', style:'shed' },
   { x:-1020, z:-780, w:15, d:10, h:6.6, door:'E', style:'barn' }, // southwest cape farm
   { x:-990,  z:-805, w:10, d:8,  h:4.4, door:'N' },
-  { x:140,  z:-1010, w:14, d:10, h:6.5, door:'N', style:'warehouse', flat:true },  // south dock sheds
+  // Novi Port — a working harbor town on the south shore
+  { x:140,  z:-1010, w:14, d:10, h:6.5, door:'N', style:'warehouse', flat:true },
   { x:170,  z:-985,  w:8,  d:7,  h:3.4, door:'W', style:'shed' },
+  { x:78,   z:-1012, w:16, d:12, h:6.5, door:'E', style:'warehouse', flat:true },
+  { x:108,  z:-968,  w:12, d:9,  h:6.4, door:'S', style:'apartment' },
+  { x:196,  z:-1012, w:14, d:11, h:6.0, door:'N', flat:true },
+  { x:226,  z:-978,  w:11, d:9,  h:4.6, door:'W' },
+  { x:196,  z:-948,  w:12, d:9,  h:6.2, door:'S', style:'house2' },
+  { x:236,  z:-1046, w:15, d:13, h:15,  door:'W', style:'tower' },   // harbor control block
+  { x:60,   z:-1032, w:10, d:8,  h:4.2, door:'N' },
+  { x:124,  z:-943,  w:9,  d:8,  h:4.2, door:'S' },
+  // Eastvale — market town on the eastern plain
+  { x:905, z:190,  w:14, d:12, h:15,  door:'E', style:'tower' },
+  { x:958, z:186,  w:13, d:10, h:6.4, door:'W', style:'apartment' },
+  { x:906, z:244,  w:12, d:9,  h:6.2, door:'S', style:'house2' },
+  { x:952, z:246,  w:11, d:9,  h:4.6, door:'S' },
+  { x:930, z:126,  w:12, d:10, h:6.6, door:'N', style:'barn' },
+  { x:978, z:244,  w:10, d:8,  h:4.2, door:'S' },
+  { x:874, z:246,  w:10, d:8,  h:4.4, door:'S' },
   { x:-950, z:900,  w:11, d:9,  h:6.2, door:'S', style:'house2' },  // northwest cape
   // outer-ring settlements for the 4km island
   { x:1420,  z:980,   w:12, d:9,  h:4.6, door:'W' },                // northeast shore pair
@@ -177,7 +194,15 @@ const roads = [
   { ax:995,  az:612,  bx:1415, bz:975,  hw:1.8 },   // northeast shore
   { ax:-1012, az:-782, bx:-1456, bz:-322, hw:1.8 }, // far west farm
   { ax:-938, az:892,  bx:-872, bz:1410, hw:1.8 },   // north cape
-  { ax:148,  az:-1002, bx:512,  bz:-1455, hw:1.8 }, // south shore depot
+  { ax:240,  az:-1000, bx:512,  bz:-1455, hw:1.8 }, // south shore depot (leaves the quay east of the container yard)
+  // Novi Port streets
+  { ax:56,  az:-1000, bx:240, bz:-1000, hw:3.2, paved:true },   // quay road
+  { ax:150, az:-1000, bx:150, bz:-940,  hw:3.0, paved:true },
+  // Eastvale streets + links
+  { ax:876, az:214, bx:992, bz:214, hw:3.0, paved:true },
+  { ax:930, az:216, bx:930, bz:146, hw:2.6, paved:true },
+  { ax:685, az:112, bx:874, bz:212, hw:2.0 },       // from the east farm
+  { ax:992, az:214, bx:997, bz:610, hw:1.8 },       // north toward the cape
 ];
 function distToSeg(px, pz, r){
   const dx=r.bx-r.ax, dz=r.bz-r.az, L2=dx*dx+dz*dz;

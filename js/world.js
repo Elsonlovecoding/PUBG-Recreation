@@ -140,22 +140,7 @@ function gablePrism(w, h, t, x, y, z, hex){
   return tintGeo(g, hex);
 }
 
-// horizon mountains ring (outside playable map, mostly silhouettes in the fog)
-{
-  const mg = [];
-  for(let i=0;i<36;i++){
-    const a = (i/36)*Math.PI*2 + randRange(-0.10,0.10);
-    const rad = randRange(2480, 3060);
-    const w = randRange(220,380), h = randRange(150,440);
-    const mx = Math.cos(a)*rad, mz = Math.sin(a)*rad;
-    if(Math.hypot(mx, mz + 2900) < w + 70) continue;          // keep clear of the lobby hangar
-    const col = new THREE.Color().setHSL(0.33+randRange(-0.04,0.07), 0.26, 0.33+randRange(-0.05,0.06));
-    mg.push(xform(tintGeo(new THREE.ConeGeometry(w, h, 5+Math.floor(Math.random()*3)), col.getHex()),
-      mx, h/2-6, mz, randRange(0,Math.PI)));
-  }
-  const m = new THREE.Mesh(mergeGeoms(mg), MAT_FLAT);
-  scene.add(m);
-}
+// (no fake horizon cones — the open sea, fog and sky gradient carry the horizon cleanly)
 // clouds: layered soft billboard sprites (procedural puff texture) instead of solid blobs
 const clouds = new THREE.Group();
 {
@@ -454,13 +439,14 @@ function makeBuilding(b, idx){
   }
   // roofs
   if(style === 'flat' || style === 'warehouse' || style === 'tower'){
-    const pH = style === 'tower' ? 0.9 : 0.55;                    // towers get a taller parapet
-    if(style !== 'tower')                                         // tower roof is built with its stairwell opening below
+    const pH = style === 'tower' ? 1.0 : 0.55;   // tower parapets are solid rails: walk into them and
+    const pc = style === 'tower';                // you stop — you have to JUMP to go over the edge
+    if(style !== 'tower')                        // tower roof is built with its stairwell opening below
       bBox(b.w+1.3, 0.3, b.d+1.3, b.x, fy+H+0.15, b.z, P.roof, false);
-    bBox(b.w+1.3, pH, 0.3, b.x, fy+H+0.3+pH/2, b.z-(b.d+1.0)/2, P.roof, false);
-    bBox(b.w+1.3, pH, 0.3, b.x, fy+H+0.3+pH/2, b.z+(b.d+1.0)/2, P.roof, false);
-    bBox(0.3, pH, b.d+1.3, b.x-(b.w+1.0)/2, fy+H+0.3+pH/2, b.z, P.roof, false);
-    bBox(0.3, pH, b.d+1.3, b.x+(b.w+1.0)/2, fy+H+0.3+pH/2, b.z, P.roof, false);
+    bBox(b.w+1.3, pH, 0.3, b.x, fy+H+0.3+pH/2, b.z-(b.d+1.0)/2, P.roof, pc);
+    bBox(b.w+1.3, pH, 0.3, b.x, fy+H+0.3+pH/2, b.z+(b.d+1.0)/2, P.roof, pc);
+    bBox(0.3, pH, b.d+1.3, b.x-(b.w+1.0)/2, fy+H+0.3+pH/2, b.z, P.roof, pc);
+    bBox(0.3, pH, b.d+1.3, b.x+(b.w+1.0)/2, fy+H+0.3+pH/2, b.z, P.roof, pc);
     if(style === 'tower'){
       bBox(1.5, 1.0, 1.5, b.x + b.w*0.26, fy+H+0.8, b.z - b.d*0.22, P.roof, false);   // rooftop service unit
     }
@@ -717,6 +703,40 @@ const windRotors = [];
     if(alongX) colliders.push({ minX: Math.min(x1,x2), maxX: Math.max(x1,x2), minY: my2 - 0.5, maxY: my2 + 1.05, minZ: mz2 - 0.1, maxZ: mz2 + 0.1 });
     else colliders.push({ minX: mx2 - 0.1, maxX: mx2 + 0.1, minY: my2 - 0.5, maxY: my2 + 1.05, minZ: Math.min(z1,z2), maxZ: Math.max(z1,z2) });
   }
+
+  // Novi Port container yard — stacked shipping containers make a cover maze on the quay
+  const CBOX = [0xb5432f, 0x2f6cb5, 0x3f8f4a, 0xc9a12e, 0x8a4f9e, 0x9aa0a5];
+  const yard = [
+    [122, -1034, 0, 0],    [131, -1034, 0, 0.05], [148, -1036, 0, 1.5708], [163, -1030, 0, 0],
+    [172, -1030, 0, -0.06],[140, -1046, 0, 1.5708],[180, -1044, 0, 0],     [189, -1044, 0, 0.04],
+    [126, -1034, 1, 0.02], [167, -1030, 1, -0.03], [184, -1044, 1, 0.01],
+  ];
+  let ci2 = 0;
+  for(const [cx2, cz2, lvl, ryc] of yard){
+    const gy = heightAt(cx2, cz2);
+    const cgeo = new THREE.BoxGeometry(6.0, 2.6, 2.55);
+    cgeo.rotateY(ryc);
+    cgeo.translate(cx2, gy + 1.32 + lvl*2.62, cz2);
+    bldGeoms.push(tintGeo(cgeo, CBOX[ci2++ % CBOX.length]));
+    const alongX = Math.abs(Math.cos(ryc)) > 0.7;
+    const hx2 = alongX ? 3.0 : 1.3, hz2 = alongX ? 1.3 : 3.0;
+    // stacked containers block bullets and sight too, not just the ground row
+    colliders.push({ minX: cx2-hx2, maxX: cx2+hx2, minY: gy - 0.5 + lvl*3.1, maxY: gy + 2.6 + lvl*2.62,
+                     minZ: cz2-hz2, maxZ: cz2+hz2 });
+    if(lvl === 0) coverSpots.push({ x: cx2 + (alongX ? 0 : 2.4), z: cz2 + (alongX ? 2.4 : 0) });
+  }
+
+  // firing range beside the military depot — backstop, three lanes, range hut
+  const rxx = 300, rzz = -180, ry2 = heightAt(rxx, rzz);
+  bBox(0.3, 2.2, 14, rxx + 12, ry2 + 1.1, rzz, 0x6a563e, true);
+  for(const oz of [-5, 0, 5]){
+    bBox(0.18, 1.6, 1.1, rxx + 11.6, ry2 + 1.5, rzz + oz, 0xe6e2d8, false);
+    bBox(0.22, 0.5, 0.5, rxx + 11.5, ry2 + 1.5, rzz + oz, 0xb43a30, false);
+    bBox(0.5, 1.05, 0.5, rxx - 6, ry2 + 0.52, rzz + oz, 0x6a563e, true);
+  }
+  bBox(3.0, 2.4, 2.4, rxx - 10, ry2 + 1.2, rzz + 8, 0x757a70, true);
+  bBox(3.2, 0.3, 2.6, rxx - 10, ry2 + 2.7, rzz + 8, 0x5a6570, false);
+  coverSpots.push({ x: rxx - 8, z: rzz }, { x: rxx + 13.5, z: rzz + 8 });
 }
 {
   const bmesh = new THREE.Mesh(bakeAO(mergeGeoms(bldGeoms), 2.6, 0.80), MAT_FLAT);

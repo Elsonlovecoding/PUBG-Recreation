@@ -23,7 +23,10 @@ doorSpots.forEach(d => waypoints.push({x:d.x, z:d.z}));
  [-1060,660],[850,-760],[500,1060],[-430,-975],[1100,-160],  // mountain feet
  [900,-200],[-880,600],[150,-960],[820,820],[-940,-260],
  [995,625],[-1000,-785],[150,-1000],[-940,895],
- [1420,975],[-1450,-315],[-865,1412],[520,-1450]].forEach(p => waypoints.push({x:p[0], z:p[1]}));
+ [1420,975],[-1450,-315],[-865,1412],[520,-1450],
+ [150,-994],[108,-978],[196,-1030],                           // Novi Port (outside the walls)
+ [930,214],[947,186],[906,238],                               // Eastvale
+ [298,-180]].forEach(p => waypoints.push({x:p[0], z:p[1]}));  // the firing range
 for(let i=0;i<190;i++){
   const x = randRange(-1820,1820), z = randRange(-1820,1820);
   if(!insideBuilding(x,z,2) && heightAt(x,z) > 0) waypoints.push({x,z});

@@ -18,6 +18,8 @@ const VEHICLE_SPOTS = [
   { x: -412, z: 8,    hex: 0xa06a3a },   // city south approach
   { x: 1408, z: 966,  hex: 0x6f8f5a },   // northeast shore
   { x: -1444, z: -308, hex: 0x8f7a4a },  // far west farm
+  { x: 160,  z: -994, hex: 0x2f6cb5 },   // Novi Port quay
+  { x: 944,  z: 220,  hex: 0xb5432f },   // Eastvale main street
 ];
 // park each buggy on the shoulder of the nearest road
 function snapToRoad(sp){
@@ -145,6 +147,7 @@ function tryVehicleToggle(){
     const oz = v.group.position.z + Math.sin(v.yaw)* 2.4;
     player.pos.set(ox, groundAt(ox, oz, v.group.position.y + 0.5), oz);
     player.vel.set(0,0,0);
+    player.grounded = true; player.fallPeak = player.pos.y;   // stepping out is not a fall
     player.driving = null;
     gunRoot.visible = true;
     SFX.setEngine(false, 0);
@@ -154,6 +157,7 @@ function tryVehicleToggle(){
   const best = nearestVehicle(4.2);
   if(best){
     player.driving = best;
+    player.grounded = true; player.fallPeak = player.pos.y;   // forget any pre-drive airtime
     player.firing = false; player.aiming = false; player.charging = false; player.scopeLock = false;
     cancelHeal();
     if(player.holding !== 'gun') holsterItem();
@@ -173,7 +177,10 @@ function damageVehicle(v, dmg, killer){
   }
   if(v.hp <= 0){
     v.alive = false;
-    if(player.driving === v){ player.driving = null; gunRoot.visible = true; SFX.setEngine(false, 0); }
+    if(player.driving === v){
+      player.driving = null; gunRoot.visible = true; SFX.setEngine(false, 0);
+      player.grounded = true; player.fallPeak = player.pos.y;   // no phantom fall after the wreck
+    }
     explodeAt(p.x, p.y + 0.8, p.z, 7, 110, killer || 'THE ZONE');
     for(const m of v.mats) m.color.multiplyScalar(0.25);   // charred wreck
     v.speed = 0;

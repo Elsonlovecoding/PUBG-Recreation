@@ -303,3 +303,7 @@ buildings.forEach((b) => {
       ['sniper','ammo_sniper','helmet','vest'][crateIdx % 4]);
   }
 });
+// bonus loot at the fun spots: the Novi Port container yard and the firing range
+[[131,-1040],[158,-1038],[176,-1037],[186,-1050],[297,-183],[305,-174]].forEach(([bx2, bz2]) => {
+  placeCrate(bx2, groundAt(bx2, bz2, heightAt(bx2, bz2) + 1), bz2, CRATE_LOOT[crateIdx++ % CRATE_LOOT.length]);
+});
