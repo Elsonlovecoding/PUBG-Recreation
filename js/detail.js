@@ -46,13 +46,12 @@ const DETAIL = (function(){
     return tex;
   }
 
-  // meadow grass: dense vertical blade streaks + clumps + bare-soil specks
+  // clean grassland: soft low-frequency mottle only — no blade streaks, no scraggle
   const grass = makeTex((nx, ny) => {
-    const blades = pfbm(nx*52, ny*13, 52, 13, 3, 5);       // strong variation across, streaky along
-    const clump  = pfbm(nx*6, ny*6, 6, 6, 2, 9);
-    let v = 0.66 + blades*0.62 + (clump - 0.5)*0.24;
-    if(pnoise(nx*96, ny*96, 96, 96, 21) > 0.855) v *= 0.62;   // dark soil gaps
-    return [v*0.965, v*1.045, v*0.90];
+    const broad = pfbm(nx*4, ny*4, 4, 4, 3, 5);            // gentle patchiness across the field
+    const fine  = pfbm(nx*11, ny*11, 11, 11, 2, 9);        // faint even grain
+    const v = 0.90 + (broad - 0.5)*0.16 + (fine - 0.5)*0.07;
+    return [v*0.97, v*1.02, v*0.93];
   });
   // packed dirt: granular multi-octave with pebbles and pits
   const dirt = makeTex((nx, ny) => {
