@@ -46,12 +46,13 @@ const DETAIL = (function(){
     return tex;
   }
 
-  // clean grassland: soft low-frequency mottle only — no blade streaks, no scraggle
+  // tidy grassland: soft patchiness + a light dapple of SHORT blade specks (no long streaks)
   const grass = makeTex((nx, ny) => {
     const broad = pfbm(nx*4, ny*4, 4, 4, 3, 5);            // gentle patchiness across the field
-    const fine  = pfbm(nx*11, ny*11, 11, 11, 2, 9);        // faint even grain
-    const v = 0.90 + (broad - 0.5)*0.16 + (fine - 0.5)*0.07;
-    return [v*0.97, v*1.02, v*0.93];
+    const blades = pnoise(nx*80, ny*80, 80, 80, 13);       // fine even short-blade texture
+    let v = 0.90 + (broad - 0.5)*0.16 + (blades - 0.5)*0.20;
+    if(pnoise(nx*40, ny*40, 40, 40, 27) > 0.72) v += 0.06; // scattered lighter tufts
+    return [v*0.96, v*1.03, v*0.90];
   });
   // packed dirt: granular multi-octave with pebbles and pits
   const dirt = makeTex((nx, ny) => {
